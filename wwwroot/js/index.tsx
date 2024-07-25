@@ -1,12 +1,12 @@
-import { createRoot } from 'react-dom/client';
+import { createRoot } from "react-dom/client";
+import { ReactElement } from "react";
 
-if (CURRENT_PAGE === "index") {
-    const id: string = "app";
-    // Clear the existing HTML content
-    document.body.innerHTML = `<div id="${id}"></div>`;
+const main = document.getElementById("index");
+if (main) {
+    const root = createRoot(main);
+    root.render(createContent());
+}
 
-    // Render your React component instead
-
-    const root = createRoot(document.getElementById(id)!);
-    root.render(<h1>Hello, world</h1>);
+function createContent(): ReactElement {
+    return <h1>Hello, world</h1>;
 }

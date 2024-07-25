@@ -1,4 +1,7 @@
-﻿<!DOCTYPE html>
+﻿@{
+    var page = @ViewData["Page"];
+}
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -11,11 +14,10 @@
       <a asp-area="" asp-page="/Index">Home</a>
       <a asp-area="" asp-page="/Privacy">Privacy</a>
     </header>
-    <main role="main">
+    <main role="main" id="@(page)">
       @RenderBody()
     </main>
 
-    <script>const CURRENT_PAGE = '@ViewData["Page"]'</script>
     <script src="/js/site.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
