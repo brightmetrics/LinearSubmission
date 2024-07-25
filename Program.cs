@@ -10,7 +10,7 @@ internal class Program
     static void Main(string[] args)
     {
         var configBuilder = new ConfigurationBuilder();
-        configBuilder.AddJsonFile("appSettings.json",
+        configBuilder.AddJsonFile("appsettings.json",
             optional: false,
             reloadOnChange: true);
         var configRoot = configBuilder.Build();
