@@ -1,2 +1,5 @@
 bin
 obj
+node_modules
+**/site.js
+wwwroot/js/site.js
