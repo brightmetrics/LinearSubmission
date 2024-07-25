@@ -34,7 +34,7 @@ public class LinearHandler : OAuthHandler<OAuthOptions>
         AuthenticationProperties properties,
         OAuthTokenResponse tokens)
     {
-        Logger.LogInformation("Access token is {Token}.", tokens.AccessToken);
+        // Logger.LogInformation("Access token is {Token}.", tokens.AccessToken);
 
         var principal = new ClaimsPrincipal(identity);
         var context = new OAuthCreatingTicketContext(
@@ -52,18 +52,5 @@ public class LinearHandler : OAuthHandler<OAuthOptions>
         await Events.CreatingTicket(context);
 
         return new AuthenticationTicket(context.Principal!, context.Properties, Scheme.Name);
-    }
-
-    protected override string BuildChallengeUrl(
-        AuthenticationProperties properties,
-        string redirectUri)
-    {
-        var uri = new Uri(base.BuildChallengeUrl(properties, redirectUri));
-        var queryStrings = QueryHelpers.ParseQuery(uri.Query);
-        // Some properties are removed when setting query params above, so the
-        // state has to be reset
-        queryStrings["state"] = Options.StateDataFormat.Protect(properties);
-
-        return QueryHelpers.AddQueryString(Options.AuthorizationEndpoint, queryStrings);
     }
 }

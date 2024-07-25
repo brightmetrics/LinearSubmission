@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.OAuth;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -8,8 +9,13 @@ internal class Program
 {
     static void Main(string[] args)
     {
-        var builder = WebApplication.CreateBuilder(args);
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddJsonFile("appSettings.json",
+            optional: false,
+            reloadOnChange: true);
+        var configRoot = configBuilder.Build();
 
+        var builder = WebApplication.CreateBuilder(args);
         // Add services to the container.
         builder.Services.AddRazorPages();
         builder.Services
@@ -23,9 +29,11 @@ internal class Program
             {
                 options.AuthorizationEndpoint = "https://oauth.wiremockapi.cloud/oauth/authorize";
                 options.TokenEndpoint = "https://oauth.wiremockapi.cloud/oauth/token";
-                options.CallbackPath = "/sign-in";
-                options.ClientId = "<id>";
-                options.ClientSecret = "<secret>";
+                // this is a fake endpoint that the OAuthHandler creates in
+                // order to complete the OAuth2 flow
+                options.CallbackPath = "/signin-linear";
+                options.ClientId = configRoot["CLIENT_ID"]!;
+                options.ClientSecret = configRoot["CLIENT_SECRET"]!;
             });
 
         var app = builder.Build();
@@ -44,8 +52,6 @@ internal class Program
 
         app.UseAuthentication();
         app.UseAuthorization();
-
-        app.MapGet("/sign-in", () => "ok");
 
         app.MapRazorPages();
 
