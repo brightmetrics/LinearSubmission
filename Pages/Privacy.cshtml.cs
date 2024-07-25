@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace WebApp3.Pages;
+namespace LinearBugSubmission.Pages;
 
 [Authorize]
 public class PrivacyModel : PageModel

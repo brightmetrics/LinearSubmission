@@ -14,7 +14,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.OAuth;
 
-namespace WebApp3;
+namespace LinearBugSubmission;
 
 public class LinearHandler : OAuthHandler<OAuthOptions>
 {
