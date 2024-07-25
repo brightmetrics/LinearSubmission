@@ -1,16 +1,23 @@
 import { createRoot } from "react-dom/client";
 import { ReactElement } from "react";
 
-const main = document.getElementById("form");
-if (main) {
-    const root = createRoot(main);
-    root.render(createContent());
+const pageId = "form";
+const content = document.getElementById(pageId);
+if (content) {
+  const root = createRoot(content);
+  root.render(createContent());
 }
 
 function createContent(): ReactElement {
-    return <Form />
+  return <FormContent />
 }
 
-export function Form() {
-    return <h1>Hello form</h1>;
+export function FormContent() {
+  return (
+    <>
+      Name <input type="text" name="name"/>
+      Age <input type="number" name="age"/>
+      <input type="submit" value="Submit" />
+    </>
+  )
 }
