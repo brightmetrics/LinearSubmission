@@ -8,5 +8,9 @@ if (main) {
 }
 
 function createContent(): ReactElement {
-    return <h1>Hello, world</h1>;
+    return <Form />
+}
+
+export function Form() {
+    return <h1>Hello form</h1>;
 }
