@@ -1,2 +1,2 @@
 import "./globals"
-export * from "./index"
+export * from "./form"

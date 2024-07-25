@@ -10,16 +10,10 @@
     <link rel="stylesheet" href="/css/site.css" asp-append-version="true" />
   </head>
   <body>
-    <header>
-      <a asp-area="" asp-page="/Index">Home</a>
-      <a asp-area="" asp-page="/Privacy">Privacy</a>
-    </header>
     <main role="main" id="@(page)">
       @RenderBody()
     </main>
 
     <script src="/js/site.js" asp-append-version="true"></script>
-
-    @await RenderSectionAsync("Scripts", required: false)
   </body>
 </html>
