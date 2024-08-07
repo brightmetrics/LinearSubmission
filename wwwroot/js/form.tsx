@@ -1,6 +1,10 @@
 import { createRoot } from "react-dom/client";
 import { ReactElement, useState } from "react";
 
+declare var okToSubmit: boolean
+
+type Action<T> = ((x: T) => void)
+
 const pageId = "form";
 const content = document.getElementById(pageId);
 if (content) {
@@ -12,63 +16,55 @@ function createContent(): ReactElement {
   return <FormContent />
 }
 
+let _uid = 0
+const uid = () => _uid++ 
+
 class Step {
   isOnlyStep = false
-  value = ""
-  setValue: any
-  constructor() {
-    const [v, s] = useState("")
-    this.value = v;
-    this.setValue = (next: string) => s(next)
-  }
-  onKeyDown(e: { key: string }) {
-    if (e.key === "Enter") {
-      setNewStep(this)
-      addStep(this)
-    }
-  }
+  id = uid()
+  constructor(public value: string = "") { }
 }
-
-function addStep(s: Step) {
-  setNewStep(s)
-  setStepsToReproduce([...stepsToReproduce, s])
-}
-
-function removeStep(a: Step) {
-  setStepsToReproduce(stepsToReproduce.filter(b => b !== a))
-}
-
-function submitClick() {
-  console.log(title, description, product, zendeskTicketNumber, customer, user, customersImpacted, stepsToReproduce, newStep);
-}
-
-const products = [
-  "Product 1",
-  "Product 2",
-  "Product 3",
-  "Product 4",
-  "Product 5",
-]
-const urgencyScale = [
-  "Urgency 1",
-  "Urgency 2",
-  "Urgency 3",
-  "Urgency 4",
-  "Urgency 5",
-]
-let [title, setTitle] = useState("")
-let [description, setDescription] = useState("")
-let [product, setProduct] = useState("")
-let [zendeskTicketNumber, setZendeskTicketNumber] = useState("")
-let [customer, setCustomer] = useState("")
-let [user, setUser] = useState("")
-let [customersImpacted, setCustomersImpacted] = useState(0)
-let [stepsToReproduce, setStepsToReproduce] = useState<Step[]>([])
-let [newStep, setNewStep] = useState<Step | null>(null)
 
 export function FormContent() {
+  const products = [
+    "Product 1",
+    "Product 2",
+    "Product 3",
+    "Product 4",
+    "Product 5",
+  ]
+  const urgencyScale = [
+    "Urgency 1",
+    "Urgency 2",
+    "Urgency 3",
+    "Urgency 4",
+    "Urgency 5",
+  ]
+  let [title, setTitle] = useState("")
+  let [description, setDescription] = useState("")
+  let [product, setProduct] = useState("")
+  let [zendeskTicketNumber, setZendeskTicketNumber] = useState("")
+  let [customer, setCustomer] = useState("")
+  let [user, setUser] = useState("")
+  let [customersImpacted, setCustomersImpacted] = useState(0)
+  let [stepsToReproduce, setStepsToReproduce] = useState<Step[]>([
+    new Step(), // Starting state (at least one input)
+  ])
+  // Represents a Step that has just been added via the UI
+  let [newStep, setNewStep] = useState<Step | null>(null)
+  let timeoutHandle = -1
   return (
-    <div className="wrapper">
+    <div className="wrapper"
+         ref={_ => {
+              if (timeoutHandle) {
+                clearTimeout(timeoutHandle)
+              }
+              timeoutHandle = setTimeout(() => {
+                setNewStep(null)
+                timeoutHandle = 0
+              }, 100)
+           }
+         }>
       <div className="editor pane">
         <h1>Linear Bug Template</h1>
 
@@ -168,8 +164,8 @@ export function FormContent() {
           <label htmlFor="urgency">Urgency</label>
           <select id="urgency" name="urgency" className="field-1">
             {
-              urgencyScale.map(urgencyName =>
-                <option value={urgencyName}>{urgencyName}</option>
+              urgencyScale.map((urgencyName, i) =>
+                <option key={i} value={urgencyName}>{urgencyName}</option>
               )
             }
           </select>
@@ -180,25 +176,16 @@ export function FormContent() {
             <span className="mr-5">Steps to reproduce (<code>Enter</code> to add step)</span>
             <ol>
               {
-                stepsToReproduce.map((step, i) => {
-                  return <li>
-                    <div className="step">
-                      <input type="text"
-                             key={i}
-                             onKeyDown={step.onKeyDown}
-                             className="mr-5 field-1"
-                             autoComplete="off"
-                             value={step.value}
-                             onChange={e => step.setValue(e.target.value)}
-                             ref={el => step === newStep ? el?.focus() : null}
-                      />
-                      <button onClick={_ => removeStep(step)}
-                              ref={el => stepsToReproduce.length === 1 && el && (el.disabled=true) }>
-                        Remove
-                      </button>
-                    </div>
-                  </li>
-                })
+                stepsToReproduce.map((step, i, { length: len }) =>
+                  <StepToReproduce
+                      key={step.id}
+                      step={step}
+                      newStep={newStep}
+                      setNewStep={setNewStep}
+                      removeStep={len-1 === i ? null : removeStep}
+                      addStep={addStep}
+                  />
+                )
               }
             </ol>
           </div>
@@ -217,4 +204,59 @@ export function FormContent() {
       </div>
     </div>
   )
+
+  function addStep(s: Step) {
+    setNewStep(s)
+    setStepsToReproduce([...stepsToReproduce, s])
+  }
+
+  function removeStep(a: Step) {
+    stepsToReproduce.splice(stepsToReproduce.indexOf(a), 1);
+    setStepsToReproduce([...stepsToReproduce])
+  }
+
+  function submitClick(e: React.MouseEvent<HTMLInputElement>) {
+    okToSubmit = true
+    document.forms[0].submit()
+  }
+}
+
+type StepToReproduceProps = {
+  step: Step,
+  newStep: Step|null,
+  setNewStep: Action<Step|null>,
+  removeStep: Action<Step>|null,
+  addStep: Action<Step>,
+}
+
+function StepToReproduce({ step, newStep, setNewStep, removeStep, addStep }: StepToReproduceProps) {
+  const [value, setValue] = useState(step.value)
+  return <li>
+    <div className="step">
+      <input type="text"
+             onChange={onChange}
+             name="stepsToReproduce"
+             onKeyDown={onKeyDown}
+             className="mr-5 field-1"
+             autoComplete="off"
+             value={value}
+             ref={el => step === newStep ? (setNewStep(null), el?.focus()) : null}
+      />
+      <button onClick={_ => removeStep?.(step)}
+              disabled={!removeStep}>
+        Remove
+      </button>
+    </div>
+  </li>
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>): void {
+    if (e.key?.toLowerCase() === "enter") {
+      addStep(new Step())
+      e.preventDefault()
+    }
+  }
+
+  function onChange(e: React.ChangeEvent<HTMLInputElement>): void {
+    setValue(step.value = e.target.value)
+  }
 }
