@@ -1,3 +1,4 @@
+import { marked } from "marked";
 import { createRoot } from "react-dom/client";
 import { ReactElement, useState } from "react";
 
@@ -43,6 +44,7 @@ export function FormContent() {
   let [product, setProduct] = useState("")
   let [zendeskTicketNumber, setZendeskTicketNumber] = useState("")
   let [customer, setCustomer] = useState("")
+  let [urgency, setUrgency] = useState("")
   let [user, setUser] = useState("")
   let [customersImpacted, setCustomersImpacted] = useState(0)
   let [stepsToReproduce, setStepsToReproduce] = useState<Step[]>([
@@ -165,7 +167,12 @@ export function FormContent() {
 
         <fieldset>
           <label htmlFor="urgency">Urgency</label>
-          <select id="urgency" name="urgency" className="field-1">
+          <select id="urgency"
+                  name="urgency"
+                  className="field-1"
+                  value={urgency}
+                  onChange={e => setUrgency(e.target.value)}
+          >
             {
               urgencyScale.map((urgencyName, i) =>
                 <option key={i} value={urgencyName}>{urgencyName}</option>
@@ -204,6 +211,7 @@ export function FormContent() {
         <a href="#">(copy)</a>
         <hr />
         <div>Markdown goes here</div>
+        <div dangerouslySetInnerHTML={compileMarkdown()}></div>
       </div>
     </div>
   )
@@ -221,6 +229,50 @@ export function FormContent() {
   function submitClick(e: React.MouseEvent<HTMLInputElement>) {
     okToSubmit = true
     document.forms[0].submit()
+  }
+
+  function compileMarkdown() {
+    const __html = marked.parse([
+      createHeader(1, title),
+      createNewline(),
+      createParagraph(description),
+      ...createTable(
+        ["Product", "Customer", "Impacted", "Urgency"],
+        [product ?? "N/A", customer ?? "N/A", `${customersImpacted}`, urgency]),
+      createNewline(),
+      createHeader(3, "Steps to Reproduce"),
+      ...createOrderedList(stepsToReproduce.map(s => s.value) ?? []),
+    ].join("\n"), { gfm: true }) as string
+    return { __html }
+  }
+  //
+  // Markdown helpers
+  //
+  function createHeader(level: number, text: string): string {
+    return `${"#".repeat(level)} ${text}`
+  }
+
+  function createNewline(count: number = 1) {
+    return "\n".repeat(count)
+  }
+
+  function createParagraph(text: string): string {
+    return text
+  }
+
+  function createTable(headers: string[], cells: string[]): string[] {
+    const headerRow = "| " + headers.map(escapeMdTokens).join(" | ") + " |";
+    const separator = "| " + headers.map(_ => "---").join(" | ") + " |"
+    const bodyRow = "| " + cells.map(escapeMdTokens).join(" | ") + " |"
+    return [headerRow, separator, bodyRow]
+
+    function escapeMdTokens(text: string): string {
+      return text.replace("|", "\|")
+    }
+  }
+
+  function createOrderedList(items: string[]): string[] {
+    return items.filter(i => i).map(i => "1. " + i)
   }
 }
 
