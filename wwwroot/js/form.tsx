@@ -5,6 +5,17 @@ import { ReactElement, useState } from "react";
 declare var okToSubmit: boolean
 
 type Action<T> = ((x: T) => void)
+type FormFields = {
+  title: string
+  description: string
+  product: string
+  customer: string
+  user: string
+  customersImpacted: string
+  stepsToReproduce: string[]
+  urgency: string
+  zendeskTicketNumber: string
+}
 
 const pageId = "form";
 const content = document.getElementById(pageId);
@@ -26,6 +37,7 @@ class Step {
 
 export function FormContent() {
   const products = [
+    "N/A",
     "Product 1",
     "Product 2",
     "Product 3",
@@ -39,14 +51,21 @@ export function FormContent() {
     "Urgency 4",
     "Urgency 5",
   ]
+  const impactedScale = [
+    "Unknown",
+    "One",
+    "Multiple",
+    "Many",
+    "Most",
+  ]
   let [title, setTitle] = useState("")
   let [description, setDescription] = useState("")
-  let [product, setProduct] = useState("")
+  let [product, setProduct] = useState(products[0])
   let [zendeskTicketNumber, setZendeskTicketNumber] = useState("")
   let [customer, setCustomer] = useState("")
-  let [urgency, setUrgency] = useState("")
+  let [urgency, setUrgency] = useState(urgencyScale[0])
   let [user, setUser] = useState("")
-  let [customersImpacted, setCustomersImpacted] = useState(0)
+  let [customersImpacted, setCustomersImpacted] = useState(impactedScale[0])
   let [stepsToReproduce, setStepsToReproduce] = useState<Step[]>([
     new Step(), // Starting state (at least one input)
   ])
@@ -153,16 +172,19 @@ export function FormContent() {
         </fieldset>
 
         <fieldset>
-          <label htmlFor="customersImpacted">Customers Impacted</label>
-          <input id="customersImpacted"
-                 type="number"
-                 min="0"
-                 name="customersImpacted"
-                 className="focusable field-1"
-                 autoComplete="off"
-                 value={customersImpacted}
-                 onChange={e => setCustomersImpacted(parseInt(e.target.value, 10) || 0)}
-          />
+          <label htmlFor="customersImpacted">Number of Impacted</label>
+          <select id="customersImpacted"
+                  name="customersImpacted"
+                  className="field-1"
+                  value={customersImpacted}
+                  onChange={e => setCustomersImpacted(e.target.value)}
+          >
+            {
+              impactedScale.map((name, i) =>
+                <option key={i} value={name}>{name}</option>
+              )
+            }
+          </select>
         </fieldset>
 
         <fieldset>
@@ -174,8 +196,8 @@ export function FormContent() {
                   onChange={e => setUrgency(e.target.value)}
           >
             {
-              urgencyScale.map((urgencyName, i) =>
-                <option key={i} value={urgencyName}>{urgencyName}</option>
+              urgencyScale.map((name, i) =>
+                <option key={i} value={name}>{name}</option>
               )
             }
           </select>
@@ -211,7 +233,15 @@ export function FormContent() {
         <a href="#">(copy)</a>
         <hr />
         <div>Markdown goes here</div>
-        <div dangerouslySetInnerHTML={compileMarkdown()}></div>
+        <MarkdownContent {...{
+          title,
+          description,
+          product,
+          customer,
+          customersImpacted,
+          urgency,
+          stepsToReproduce,
+        }} />
       </div>
     </div>
   )
@@ -231,6 +261,77 @@ export function FormContent() {
     document.forms[0].submit()
   }
 
+  function markTouched(e: React.FocusEvent<HTMLElement>): void {
+    (e.target as HTMLElement)?.classList.add("touched")
+  }
+}
+
+type StepToReproduceProps = {
+  step: Step,
+  newStep: Step|null,
+  setNewStep: Action<Step|null>,
+  removeStep: Action<Step>|null,
+  addStep: Action<Step>,
+}
+
+function StepToReproduce({ step, newStep, setNewStep, removeStep, addStep }: StepToReproduceProps) {
+  const [value, setValue] = useState(step.value)
+  return <li>
+    <div className="step">
+      <textarea onChange={onChange}
+                name="stepsToReproduce"
+                onKeyDown={onKeyDown}
+                className="mr-5 field-1"
+                autoComplete="off"
+                value={value}
+                rows={1}
+                ref={el => step === newStep && (setNewStep(null), el?.focus())}
+      ></textarea>
+      <button onClick={_ => removeStep?.(step)}
+              disabled={!removeStep}>
+        Remove
+      </button>
+    </div>
+  </li>
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLElement>): void {
+    if (e.key?.toLowerCase() === "enter") {
+      const target = e.target
+      if (e.shiftKey && isTextArea(target)) {
+        // Act as if adding a newline
+        target.rows += 1
+        const len = (target.value += "\n").length
+        target.setSelectionRange(len, len)
+        // setTimeout(target.focus(), 0)
+      } else {
+        addStep(new Step())
+        e.preventDefault()
+      }
+    }
+  }
+
+  function isTextArea(n: any): n is HTMLTextAreaElement {
+    return n?.nodeName === "TEXTAREA"
+  }
+
+  function onChange(e: React.ChangeEvent<HTMLTextAreaElement>): void {
+    setValue(step.value = e.target.value)
+  }
+}
+
+function MarkdownContent({
+  title,
+  description,
+  product,
+  customer,
+  customersImpacted,
+  stepsToReproduce,
+  urgency
+}: Omit<FormFields, "zendeskTicketNumber" | "user">) {
+
+  return <div className="md-content"
+              dangerouslySetInnerHTML={compileMarkdown()}></div>
+
   function compileMarkdown() {
     const __html = marked.parse([
       createHeader(1, title),
@@ -238,10 +339,10 @@ export function FormContent() {
       createParagraph(description),
       ...createTable(
         ["Product", "Customer", "Impacted", "Urgency"],
-        [product ?? "N/A", customer ?? "N/A", `${customersImpacted}`, urgency]),
+        [product ?? "N/A", customer ?? "N/A", customersImpacted, urgency]),
       createNewline(),
       createHeader(3, "Steps to Reproduce"),
-      ...createOrderedList(stepsToReproduce.map(s => s.value) ?? []),
+      ...createOrderedList(stepsToReproduce ?? []),
     ].join("\n"), { gfm: true }) as string
     return { __html }
   }
@@ -274,48 +375,4 @@ export function FormContent() {
   function createOrderedList(items: string[]): string[] {
     return items.filter(i => i).map(i => "1. " + i)
   }
-}
-
-type StepToReproduceProps = {
-  step: Step,
-  newStep: Step|null,
-  setNewStep: Action<Step|null>,
-  removeStep: Action<Step>|null,
-  addStep: Action<Step>,
-}
-
-function StepToReproduce({ step, newStep, setNewStep, removeStep, addStep }: StepToReproduceProps) {
-  const [value, setValue] = useState(step.value)
-  return <li>
-    <div className="step">
-      <input type="text"
-             onChange={onChange}
-             name="stepsToReproduce"
-             onKeyDown={onKeyDown}
-             className="mr-5 field-1"
-             autoComplete="off"
-             value={value}
-             ref={el => step === newStep && (setNewStep(null), el?.focus())}
-      />
-      <button onClick={_ => removeStep?.(step)}
-              disabled={!removeStep}>
-        Remove
-      </button>
-    </div>
-  </li>
-
-  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>): void {
-    if (e.key?.toLowerCase() === "enter") {
-      addStep(new Step())
-      e.preventDefault()
-    }
-  }
-
-  function onChange(e: React.ChangeEvent<HTMLInputElement>): void {
-    setValue(step.value = e.target.value)
-  }
-}
-
-function markTouched(e: React.FocusEvent<HTMLElement>): void {
-  (e.target as HTMLElement)?.classList.add("touched")
 }
