@@ -185,7 +185,7 @@ export function FormContent() {
                       step={step}
                       newStep={newStep}
                       setNewStep={setNewStep}
-                      removeStep={len-1 === i ? null : removeStep}
+                      removeStep={len === 1 ? null : removeStep}
                       addStep={addStep}
                   />
                 )
@@ -243,7 +243,7 @@ function StepToReproduce({ step, newStep, setNewStep, removeStep, addStep }: Ste
              className="mr-5 field-1"
              autoComplete="off"
              value={value}
-             ref={el => step === newStep ? (setNewStep(null), el?.focus()) : null}
+             ref={el => step === newStep && (setNewStep(null), el?.focus())}
       />
       <button onClick={_ => removeStep?.(step)}
               disabled={!removeStep}>
