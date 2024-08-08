@@ -16,13 +16,11 @@ function createContent(): ReactElement {
   return <FormContent />
 }
 
-let _uid = 0
-const uid = () => _uid++ 
-
 class Step {
   isOnlyStep = false
-  id = uid()
+  id = ++Step.instance
   constructor(public value: string = "") { }
+  static instance = 0
 }
 
 export function FormContent() {
@@ -73,9 +71,11 @@ export function FormContent() {
           <input id="title"
                  type="text"
                  name="title"
-                 className="field-1"
+                 className="focusable field-1"
                  value={title}
                  autoComplete="off"
+                 required={true}
+                 onBlur={markTouched}
                  onChange={e => setTitle(e.target.value)}
           />
         </fieldset>
@@ -84,9 +84,12 @@ export function FormContent() {
           <label htmlFor="desc">Description*</label>
           <textarea id="desc"
                     name="description"
+                    className="focusable"
                     placeholder="What sort of expectation isn't being met?"
                     rows={10}
                     value={description}
+                    required={true}
+                    onBlur={markTouched}
                     onChange={e => setDescription(e.target.value)}
           ></textarea>
         </fieldset>
@@ -95,7 +98,7 @@ export function FormContent() {
           <label htmlFor="product">Product*</label>
           <select id="product"
                   name="product"
-                  className="field-1"
+                  className="focusable field-1"
                   onChange={e => setProduct(e.target.value)}>
             {
               products.map((productName, i) => {
@@ -114,7 +117,7 @@ export function FormContent() {
                  type="text"
                  name="zendeskTicketNumber"
                  placeholder="If applicable"
-                 className="field-1"
+                 className="focusable field-1"
                  autoComplete="off"
                  value={zendeskTicketNumber}
                  onChange={e => setZendeskTicketNumber(e.target.value)}
@@ -127,7 +130,7 @@ export function FormContent() {
                  type="text"
                  name="customer"
                  placeholder="If applicable"
-                 className="field-1"
+                 className="focusable field-1"
                  autoComplete="off"
                  value={customer}
                  onChange={e => setCustomer(e.target.value)}
@@ -140,7 +143,7 @@ export function FormContent() {
                  type="text"
                  name="user"
                  placeholder="If applicable"
-                 className="field-1"
+                 className="focusable field-1"
                  autoComplete="off"
                  value={user}
                  onChange={e => setUser(e.target.value)}
@@ -153,7 +156,7 @@ export function FormContent() {
                  type="number"
                  min="0"
                  name="customersImpacted"
-                 className="field-1"
+                 className="focusable field-1"
                  autoComplete="off"
                  value={customersImpacted}
                  onChange={e => setCustomersImpacted(parseInt(e.target.value, 10) || 0)}
@@ -259,4 +262,8 @@ function StepToReproduce({ step, newStep, setNewStep, removeStep, addStep }: Ste
   function onChange(e: React.ChangeEvent<HTMLInputElement>): void {
     setValue(step.value = e.target.value)
   }
+}
+
+function markTouched(e: React.FocusEvent<HTMLElement>): void {
+  (e.target as HTMLElement)?.classList.add("touched")
 }
