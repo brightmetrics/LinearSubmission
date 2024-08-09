@@ -2,6 +2,7 @@ import { marked } from "marked";
 import { createRoot } from "react-dom/client";
 import { ReactElement, useState } from "react";
 
+// TODO hacky
 declare var okToSubmit: boolean
 
 type Action<T> = ((x: T) => void)
@@ -29,10 +30,12 @@ function createContent(): ReactElement {
 }
 
 class Step {
-  isOnlyStep = false
-  id = ++Step.instance
-  constructor(public value: string = "") { }
-  static instance = 0
+  public id = (Step.ids[this.index] ??= ++Step.nextid)
+  constructor(
+    public index: number,
+    public value: string = "") { }
+  static ids: Record<number, number> = {}
+  static nextid = 0
 }
 
 export function FormContent() {
@@ -66,11 +69,10 @@ export function FormContent() {
   let [urgency, setUrgency] = useState(urgencyScale[0])
   let [user, setUser] = useState("")
   let [customersImpacted, setCustomersImpacted] = useState(impactedScale[0])
-  let [stepsToReproduce, setStepsToReproduce] = useState<Step[]>([
-    new Step(), // Starting state (at least one input)
-  ])
+  let [stepsToReproduce, setStepsToReproduce] = useState<string[]>([""])
+  let projectedSteps: Step[] = []
   // Represents a Step that has just been added via the UI
-  let [newStep, setNewStep] = useState<Step | null>(null)
+  let [newStep, setNewStep] = useState<number | null>(null)
   let timeoutHandle = -1
   return (
     <div className="wrapper"
@@ -208,16 +210,22 @@ export function FormContent() {
             <span className="mr-5">Steps to reproduce (<code>Enter</code> to add step)</span>
             <ol>
               {
-                stepsToReproduce.map((step, i, { length: len }) =>
-                  <StepToReproduce
+                stepsToReproduce.map((text, i, { length: len }) => {
+                  const step = new Step(i, text)
+                  if (i === 0)
+                    projectedSteps.length = 0
+                  projectedSteps.push(step)
+
+                  return <StepToReproduce
                       key={step.id}
                       step={step}
                       newStep={newStep}
                       setNewStep={setNewStep}
                       removeStep={len === 1 ? null : removeStep}
                       addStep={addStep}
+                      updateStep={updateStep}
                   />
-                )
+                })
               }
             </ol>
           </div>
@@ -232,7 +240,6 @@ export function FormContent() {
         <strong className="mr-5">Your submission will look like this in Linear</strong>
         <a href="#">(copy)</a>
         <hr />
-        <div>Markdown goes here</div>
         <MarkdownContent {...{
           title,
           description,
@@ -246,13 +253,37 @@ export function FormContent() {
     </div>
   )
 
-  function addStep(s: Step) {
-    setNewStep(s)
-    setStepsToReproduce([...stepsToReproduce, s])
+  function throwIfWeirdState() {
+      if (projectedSteps.length != stepsToReproduce.length)
+        throw new Error(`Projection out of sync ${projectedSteps.length} vs. ${stepsToReproduce.length}`);
   }
 
-  function removeStep(a: Step) {
-    stepsToReproduce.splice(stepsToReproduce.indexOf(a), 1);
+  function addStep(index: number) {
+    Step.ids = {}
+    const step = new Step(index)
+    setNewStep(step.id)
+    if (index >= stepsToReproduce.length) {
+      setStepsToReproduce([...stepsToReproduce, step.value])
+    } else {
+      stepsToReproduce.splice(index, 0, step.value)
+      setStepsToReproduce([...stepsToReproduce])
+    }
+  }
+
+  function updateStep(s: Step) {
+    const i = projectedSteps.indexOf(s)
+    if (i > -1) {
+      throwIfWeirdState()
+      stepsToReproduce.splice(i, 1, s.value)
+      setStepsToReproduce([...stepsToReproduce])
+    }
+  }
+
+  function removeStep(s: Step) {
+    throwIfWeirdState()
+    const i = projectedSteps.indexOf(s)
+    stepsToReproduce.splice(i, 1);
+    delete Step.ids[i]
     setStepsToReproduce([...stepsToReproduce])
   }
 
@@ -267,15 +298,16 @@ export function FormContent() {
 }
 
 type StepToReproduceProps = {
-  step: Step,
-  newStep: Step|null,
-  setNewStep: Action<Step|null>,
-  removeStep: Action<Step>|null,
-  addStep: Action<Step>,
+  step: Step
+  /** number is the step.id */
+  newStep: number|null
+  setNewStep: Action<number|null>
+  removeStep: Action<Step>|null
+  addStep: Action<number>
+  updateStep: Action<Step>
 }
 
-function StepToReproduce({ step, newStep, setNewStep, removeStep, addStep }: StepToReproduceProps) {
-  const [value, setValue] = useState(step.value)
+function StepToReproduce({ step, newStep, setNewStep, removeStep, addStep, updateStep }: StepToReproduceProps) {
   return <li>
     <div className="step">
       <textarea onChange={onChange}
@@ -283,9 +315,9 @@ function StepToReproduce({ step, newStep, setNewStep, removeStep, addStep }: Ste
                 onKeyDown={onKeyDown}
                 className="mr-5 field-1"
                 autoComplete="off"
-                value={value}
+                value={step.value}
                 rows={1}
-                ref={el => step === newStep && (setNewStep(null), el?.focus())}
+                ref={el => step.id === newStep && (setNewStep(null), el?.focus())}
       ></textarea>
       <button onClick={_ => removeStep?.(step)}
               disabled={!removeStep}>
@@ -302,9 +334,8 @@ function StepToReproduce({ step, newStep, setNewStep, removeStep, addStep }: Ste
         target.rows += 1
         const len = (target.value += "\n").length
         target.setSelectionRange(len, len)
-        // setTimeout(target.focus(), 0)
       } else {
-        addStep(new Step())
+        addStep(step.index + 1)
         e.preventDefault()
       }
     }
@@ -315,7 +346,8 @@ function StepToReproduce({ step, newStep, setNewStep, removeStep, addStep }: Ste
   }
 
   function onChange(e: React.ChangeEvent<HTMLTextAreaElement>): void {
-    setValue(step.value = e.target.value)
+    step.value = e.target.value
+    updateStep(step)
   }
 }
 

@@ -10,7 +10,8 @@ internal class Program
     static IConfigurationRoot GetConfiguration()
     {
         var configBuilder = new ConfigurationBuilder();
-        configBuilder.AddJsonFile("appsettings.json",
+        // configBuilder.AddJsonFile("appsettings.json",
+        configBuilder.AddJsonFile("secrets.json",
             optional: false,
             reloadOnChange: true);
         return configBuilder.Build();
@@ -31,13 +32,16 @@ internal class Program
             .AddCookie()
             .AddOAuth<OAuthOptions, LinearHandler>(LinearHandler.SchemeName, options =>
             {
-                options.AuthorizationEndpoint = "https://oauth.wiremockapi.cloud/oauth/authorize";
-                options.TokenEndpoint = "https://oauth.wiremockapi.cloud/oauth/token";
+                // options.AuthorizationEndpoint = "https://oauth.wiremockapi.cloud/oauth/authorize";
+                options.AuthorizationEndpoint = "https://linear.app/oauth/authorize";
+                // options.TokenEndpoint = "https://oauth.wiremockapi.cloud/oauth/token";
+                options.TokenEndpoint = "https://api.linear.app/oauth/token";
                 // this is a fake endpoint that the OAuthHandler creates in
                 // order to complete the OAuth2 flow
                 options.CallbackPath = "/signin-linear";
                 options.ClientId = configRoot["CLIENT_ID"]!;
                 options.ClientSecret = configRoot["CLIENT_SECRET"]!;
+                options.Scope.Add("issues:create");
             });
     }
 

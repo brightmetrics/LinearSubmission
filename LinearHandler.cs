@@ -34,14 +34,11 @@ public class LinearHandler : OAuthHandler<OAuthOptions>
         AuthenticationProperties properties,
         OAuthTokenResponse tokens)
     {
-        var claimValue = $"LinearUser-{tokens.AccessToken}";
+        var claimValue = tokens.AccessToken;
         if (!identity.HasClaim(ClaimTypes.Name, claimValue))
         {
-            Logger.LogInformation("Adding claim Name to identity");
-
             identity.AddClaim(new(ClaimTypes.Name, claimValue));
         }
-
         var principal = new ClaimsPrincipal(identity);
         var context = new OAuthCreatingTicketContext(
             principal,

@@ -3,3 +3,4 @@ obj
 node_modules
 **/site.js
 wwwroot/js/site.js
+secrets.json
