@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace LinearBugSubmission.Pages;
+namespace LinearSubmission.Pages;
 
 [Authorize]
 [IgnoreAntiforgeryToken]
@@ -64,7 +64,7 @@ mutation IssueCreate {{
         _logger.LogInformation(json.ToJsonString());
 
         var identity = HttpContext.User.Identity as ClaimsIdentity;
-        var claim = identity.FindFirst(ClaimTypes.Name);
+        var claim = identity!.FindFirst(ClaimTypes.Name)!;
 
         var client = new HttpClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", claim.Value);

@@ -13,8 +13,9 @@ using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.OAuth;
+using System.Diagnostics.CodeAnalysis;
 
-namespace LinearBugSubmission;
+namespace LinearSubmission;
 
 public class LinearHandler : OAuthHandler<OAuthOptions>
 {
@@ -26,7 +27,9 @@ public class LinearHandler : OAuthHandler<OAuthOptions>
     { }
 
     public LinearHandler(IOptionsMonitor<OAuthOptions> options, ILoggerFactory logger, UrlEncoder encoder)
-        : base(options, logger, encoder, default)
+#pragma warning disable CS0618
+        : base(options, logger, encoder, default!)
+#pragma warning restore CS0618
     { }
 
     protected override async Task<AuthenticationTicket> CreateTicketAsync(
@@ -34,6 +37,12 @@ public class LinearHandler : OAuthHandler<OAuthOptions>
         AuthenticationProperties properties,
         OAuthTokenResponse tokens)
     {
+        if (string.IsNullOrEmpty(tokens?.AccessToken))
+            throw new ArgumentNullException(nameof(tokens.AccessToken));
+
+        if (identity == null)
+            throw new ArgumentNullException(nameof(identity));
+
         var claimValue = tokens.AccessToken;
         if (!identity.HasClaim(ClaimTypes.Name, claimValue))
         {

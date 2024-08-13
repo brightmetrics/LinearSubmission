@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.OAuth;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
-namespace LinearBugSubmission;
+namespace LinearSubmission;
 
 internal class Program
 {
