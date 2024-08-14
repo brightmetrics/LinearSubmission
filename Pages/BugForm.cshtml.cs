@@ -14,12 +14,15 @@ namespace LinearSubmission.Pages;
 [IgnoreAntiforgeryToken]
 public class BugFormModel : PageModel
 {
-    private readonly ILogger<BugFormModel> _logger;
-    private const string testTeam = "ee13a067-68bf-4a61-8c84-d8fd67b7b048";
+    private readonly ILogger<BugFormModel> logger;
+    private readonly string linearTeam;
 
-    public BugFormModel(ILogger<BugFormModel> logger)
+    public BugFormModel(ILogger<BugFormModel> logger, IConfiguration configuration)
     {
-        _logger = logger;
+        this.logger = logger;
+
+        linearTeam = configuration["LinearTeam"] ??
+            throw new InvalidOperationException("No LinearTeam found in configuration");
     }
 
     public IActionResult OnGet()
@@ -54,14 +57,14 @@ mutation IssueCreate {{
       title
     }}
   }}
-}}", title?.Trim(), description?.Trim(), testTeam).Trim();
+}}", title?.Trim(), description?.Trim(), linearTeam).Trim();
 
         var json = new JsonObject()
         {
             ["query"] = query
         };
 
-        _logger.LogInformation(json.ToJsonString());
+        logger.LogInformation(json.ToJsonString());
 
         var identity = HttpContext.User.Identity as ClaimsIdentity;
         var claim = identity!.FindFirst(ClaimTypes.Name)!;
@@ -72,7 +75,7 @@ mutation IssueCreate {{
         var response = await client.PostAsync("https://api.linear.app/graphql", content);
         var responseString = await response.Content.ReadAsStringAsync();
 
-        _logger.LogInformation(responseString);
+        logger.LogInformation(responseString);
 
         return Page();
     }
