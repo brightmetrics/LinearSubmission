@@ -21,10 +21,12 @@ jobs:
         with:
           dotnet-version: '8.x'
 
-      - name: Set up Node/npm
+      - name: Configure NodeJS
         uses: actions/setup-node@v4
         with:
           node-version: 18
+
+      - name: Install Node dependencies
         run: npm --prefix ./wwwroot/js ci
 
       - name: Build JavaScript assets
