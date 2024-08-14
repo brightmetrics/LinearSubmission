@@ -1,5 +1,7 @@
 ﻿using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Security;
@@ -15,7 +17,24 @@ namespace LinearSubmission.Pages;
 public class BugFormModel : PageModel
 {
     private readonly ILogger<BugFormModel> logger;
+    private readonly HttpClient client = new();
     private readonly string linearTeam;
+    private readonly string issueCreateQueryTemplate = @"
+mutation IssueCreate {
+  issueCreate(
+    input: {
+      title: ""<%TITLE%>""
+      description: ""<%DESCRIPTION%>""
+      teamId: ""<%TEAM_ID%>""
+    }
+  ) {
+    success
+    issue {
+      id
+      title
+    }
+  }
+}";
 
     public BugFormModel(ILogger<BugFormModel> logger, IConfiguration configuration)
     {
@@ -25,10 +44,7 @@ public class BugFormModel : PageModel
             throw new InvalidOperationException("No LinearTeam found in configuration");
     }
 
-    public IActionResult OnGet()
-    {
-        return Page();
-    }
+    public IActionResult OnGet() => Page();
 
     public async Task<IActionResult> OnPost(
         string title,
@@ -41,42 +57,32 @@ public class BugFormModel : PageModel
         string urgency,
         string[] stepsToReproduce)
     {
-        // TODO hacky
-        var query = string.Format(@"
-mutation IssueCreate {{
-  issueCreate(
-    input: {{
-      title: ""{0}""
-      description: ""{1}""
-      teamId: ""{2}""
-    }}
-  ) {{
-    success
-    issue {{
-      id
-      title
-    }}
-  }}
-}}", title?.Trim(), description?.Trim(), linearTeam).Trim();
+        var query = Regex.Replace(issueCreateQueryTemplate.Trim(), @"\s+", " ")
+            .Replace("<%TITLE%>", title?.Trim())
+            .Replace("<%DESCRIPTION%>", description?.Trim())
+            .Replace("<%TEAM_ID%>", linearTeam);
 
-        var json = new JsonObject()
+        var queryJson = new JsonObject()
         {
             ["query"] = query
-        };
+        }.ToJsonString();
 
-        logger.LogInformation(json.ToJsonString());
+        logger.LogDebug("Request body ==> {responseString}", queryJson.Replace(@"\u0022", "'"));
 
         var identity = HttpContext.User.Identity as ClaimsIdentity;
         var claim = identity!.FindFirst(ClaimTypes.Name)!;
 
-        var client = new HttpClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", claim.Value);
-        var content = new StringContent(json.ToJsonString(), System.Text.Encoding.UTF8, "application/json");
-        var response = await client.PostAsync("https://api.linear.app/graphql", content);
+        using var request = new HttpRequestMessage();
+        request.Method = HttpMethod.Post;
+        request.Content = new StringContent(queryJson, Encoding.UTF8, "application/json");
+        request.RequestUri = new Uri("https://api.linear.app/graphql");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", claim.Value);
+
+        var response = await client.SendAsync(request);
         var responseString = await response.Content.ReadAsStringAsync();
 
-        logger.LogInformation(responseString);
+        logger.LogDebug("Response body ==> {responseString}", responseString);
 
-        return Page();
+        return Content("Submission successful");
     }
 }
