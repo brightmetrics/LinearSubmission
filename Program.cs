@@ -1,29 +1,41 @@
+using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.OAuth;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.Extensions.Configuration;
 
 namespace LinearSubmission;
 
 internal class Program
 {
-    static IConfigurationRoot GetConfiguration()
+    static IConfigurationRoot GetConfiguration(WebApplicationBuilder builder)
     {
         var configBuilder = new ConfigurationBuilder();
-        // configBuilder.AddJsonFile("appsettings.json",
-        configBuilder.AddJsonFile("secrets.json",
-            optional: false,
-            reloadOnChange: true);
+        try
+        {
+            var assemblyName = new AssemblyName(builder.Environment.ApplicationName);
+            var appAssembly = Assembly.Load(assemblyName);
+            configBuilder.AddUserSecrets(appAssembly, optional: true);
+            configBuilder.AddEnvironmentVariables();
+        }
+        catch (FileNotFoundException)
+        {
+            // The assembly cannot be found, so just skip it.
+        }
         return configBuilder.Build();
     }
 
-    static void AddServices(IServiceCollection services)
+    static void AddServices(WebApplicationBuilder builder)
     {
-        var configRoot = GetConfiguration();
+        var configuration = GetConfiguration(builder);
 
-        services.AddRazorPages();
+        // var str = string.Join("\n", configuration.GetChildren().Select(x => x.Key));
+        // throw new Exception(str);
 
-        services
+        builder.Services.AddRazorPages();
+
+        builder.Services
             .AddAuthentication(options =>
             {
                 options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -39,8 +51,8 @@ internal class Program
                 // this is a fake endpoint that the OAuthHandler creates in
                 // order to complete the OAuth2 flow
                 options.CallbackPath = "/signin-linear";
-                options.ClientId = configRoot["CLIENT_ID"]!;
-                options.ClientSecret = configRoot["CLIENT_SECRET"]!;
+                options.ClientId = configuration["CLIENT_ID"]!;
+                options.ClientSecret = configuration["CLIENT_SECRET"]!;
                 options.Scope.Add("issues:create");
             });
     }
@@ -50,7 +62,8 @@ internal class Program
         if (!app.Environment.IsDevelopment())
         {
             app.UseExceptionHandler("/Error");
-            // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+            // The default HSTS value is 30 days. You may want to change this
+            // for production scenarios, see https://aka.ms/aspnetcore-hsts.
             app.UseHsts();
         }
         app.UseHttpsRedirection();
@@ -64,7 +77,7 @@ internal class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        AddServices(builder.Services);
+        AddServices(builder);
 
         var app = builder.Build();
 
