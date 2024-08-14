@@ -21,6 +21,15 @@ jobs:
         with:
           dotnet-version: '8.x'
 
+      - name: Set up Node/npm
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+        run: npm --prefix ./wwwroot/js ci
+
+      - name: Build JavaScript assets
+        run: npm --prefix ./wwwroot/js run build
+
       - name: Build with dotnet
         run: dotnet build --configuration Release
 
@@ -47,7 +56,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: .net-app
-      
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -62,4 +71,4 @@ jobs:
           app-name: 'LinearSubmission'
           slot-name: 'Production'
           package: .
-          
+
