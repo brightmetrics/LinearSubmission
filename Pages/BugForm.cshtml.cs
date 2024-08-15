@@ -83,8 +83,11 @@ query {
         string user,
         string customersImpacted,
         string urgency,
-        string[] stepsToReproduce)
+        string[] stepsToReproduce,
+        string markdown)
     {
+        logger.LogDebug(markdown);
+
         var form = new FormData(
             title,
             description,
@@ -96,7 +99,7 @@ query {
             urgency,
             stepsToReproduce);
 
-        var createResponse = await PostToLinearApi(BuildMutationIssueCreatePayload(form));
+        var createResponse = await PostToLinearApi(BuildMutationIssueCreatePayload(form, markdown));
 
         var newIssueId = createResponse["data"]?["issueCreate"]?["issue"]?["id"] ??
             throw new InvalidOperationException("No issue ID found from newly created issue");
@@ -138,11 +141,14 @@ query {
         return new StringContent(jsonString, Encoding.UTF8, "application/json");
     }
 
-    private StringContent BuildMutationIssueCreatePayload(FormData form)
+    private StringContent BuildMutationIssueCreatePayload(FormData form, string markdown)
     {
         var query = mutationIssueCreateTemplate
             .Replace("<%TITLE%>", form.Title?.Trim())
-            .Replace("<%DESCRIPTION%>", form.Description?.Trim())
+            .Replace("<%DESCRIPTION%>", markdown
+                    .Replace("\r", "")
+                    .Replace("\n", "\\n")
+                    .Trim())
             .Replace("<%TEAM_ID%>", linearTeam);
 
         var jsonString = new JsonObject() { ["query"] = query }.ToJsonString();

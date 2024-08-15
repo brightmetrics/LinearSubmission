@@ -289,7 +289,21 @@ export function FormContent() {
 
   function submitClick(e: React.MouseEvent<HTMLInputElement>) {
     okToSubmit = true
-    document.forms[0].submit()
+    const form = document.forms[0]
+    const mdElement = document.createElement("INPUT") as HTMLInputElement;
+    mdElement.setAttribute("type", "hidden");
+    mdElement.setAttribute("name", "markdown");
+    mdElement.value = createMarkdown({
+      title,
+      description,
+      product,
+      customer,
+      customersImpacted,
+      urgency,
+      stepsToReproduce,
+    })
+    form.appendChild(mdElement);
+    form.submit()
   }
 
   function markTouched(e: React.FocusEvent<HTMLElement>): void {
@@ -351,60 +365,66 @@ function StepToReproduce({ step, newStep, setNewStep, removeStep, addStep, updat
   }
 }
 
-function MarkdownContent({
+type FormFields2 = Omit<FormFields, "zendeskTicketNumber" | "user">
+
+function MarkdownContent(formFields: FormFields2) {
+  return <div className="md-content"
+              dangerouslySetInnerHTML={compileMarkdown(formFields)}></div>
+
+  function compileMarkdown(formFields: FormFields2) {
+    const markdown = createMarkdown(formFields)
+    const __html = marked.parse(markdown, { gfm: true }) as string
+    return { __html }
+  }
+}
+//
+// Markdown helpers
+//
+function createMarkdown({
   title,
   description,
   product,
   customer,
   customersImpacted,
   stepsToReproduce,
-  urgency
-}: Omit<FormFields, "zendeskTicketNumber" | "user">) {
+  urgency,
+}: FormFields2): string {
+  return [
+    createHeader(1, title),
+    createParagraph(description),
+    // createNewline(),
+    ...createTable(
+      ["Product", "Customer", "Impacted", "Urgency"],
+      [product ?? "N/A", customer ?? "N/A", customersImpacted, urgency]),
+    // createNewline(),
+    createHeader(3, "Steps to Reproduce"),
+    ...createOrderedList(stepsToReproduce ?? []),
+  ].join("\n")
+}
 
-  return <div className="md-content"
-              dangerouslySetInnerHTML={compileMarkdown()}></div>
+function createHeader(level: number, text: string): string {
+  return `${"#".repeat(level)} ${text}`
+}
 
-  function compileMarkdown() {
-    const __html = marked.parse([
-      createHeader(1, title),
-      createNewline(),
-      createParagraph(description),
-      ...createTable(
-        ["Product", "Customer", "Impacted", "Urgency"],
-        [product ?? "N/A", customer ?? "N/A", customersImpacted, urgency]),
-      createNewline(),
-      createHeader(3, "Steps to Reproduce"),
-      ...createOrderedList(stepsToReproduce ?? []),
-    ].join("\n"), { gfm: true }) as string
-    return { __html }
+function createNewline(count: number = 1) {
+  return "\n".repeat(count)
+}
+
+function createParagraph(text: string): string {
+  return text
+}
+
+function createTable(headers: string[], cells: string[]): string[] {
+  const headerRow = "| " + headers.map(escapeMdTokens).join(" | ") + " |";
+  const separator = "| " + headers.map(_ => "---").join(" | ") + " |"
+  const bodyRow = "| " + cells.map(escapeMdTokens).join(" | ") + " |"
+  return [headerRow, separator, bodyRow]
+
+  function escapeMdTokens(text: string): string {
+    return text.replace("|", "\|")
   }
-  //
-  // Markdown helpers
-  //
-  function createHeader(level: number, text: string): string {
-    return `${"#".repeat(level)} ${text}`
-  }
+}
 
-  function createNewline(count: number = 1) {
-    return "\n".repeat(count)
-  }
-
-  function createParagraph(text: string): string {
-    return text
-  }
-
-  function createTable(headers: string[], cells: string[]): string[] {
-    const headerRow = "| " + headers.map(escapeMdTokens).join(" | ") + " |";
-    const separator = "| " + headers.map(_ => "---").join(" | ") + " |"
-    const bodyRow = "| " + cells.map(escapeMdTokens).join(" | ") + " |"
-    return [headerRow, separator, bodyRow]
-
-    function escapeMdTokens(text: string): string {
-      return text.replace("|", "\|")
-    }
-  }
-
-  function createOrderedList(items: string[]): string[] {
-    return items.filter(i => i).map(i => "1. " + i)
-  }
+function createOrderedList(items: string[]): string[] {
+  return items.filter(i => i).map(i => "1. " + i)
 }
