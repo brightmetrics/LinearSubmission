@@ -238,7 +238,7 @@ export function FormContent() {
 
       <div className="preview pane">
         <strong className="mr-5">Your submission will look like this in Linear</strong>
-        <a href="#">(copy)</a>
+        <a href="#">(copy raw markdown)</a>
         <hr />
         <MarkdownContent {...{
           title,

@@ -16,10 +16,22 @@ namespace LinearSubmission.Pages;
 [IgnoreAntiforgeryToken]
 public class BugFormModel : PageModel
 {
+    private record FormData(
+        string Title,
+        string Description,
+        string Product,
+        string ZendeskTicketNumber,
+        string Customer,
+        string User,
+        string CustomersImpacted,
+        string Urgency,
+        string[] StepsToReproduce);
+
     private readonly ILogger<BugFormModel> logger;
     private readonly HttpClient client = new();
     private readonly string linearTeam;
-    private readonly string issueCreateQueryTemplate = @"
+    private readonly string graphqlEndpoint;
+    private readonly string mutationIssueCreateTemplate = @"
 mutation IssueCreate {
   issueCreate(
     input: {
@@ -35,6 +47,14 @@ mutation IssueCreate {
     }
   }
 }";
+    private readonly string queryIssueTemplate = @"
+query {
+  issue(id: ""<%ID%>"") {
+    number,
+    identifier,
+    url
+  }
+}";
 
     public BugFormModel(ILogger<BugFormModel> logger, IConfiguration configuration)
     {
@@ -42,6 +62,14 @@ mutation IssueCreate {
 
         linearTeam = configuration["LinearTeam"] ??
             throw new InvalidOperationException("No LinearTeam found in configuration");
+
+        graphqlEndpoint = configuration["GraphQLEndpoint"] ??
+            throw new InvalidOperationException("No GraphQLEndpoint found in configuration");
+
+        // Clean the templates for usage, since it looks better in source when
+        // pretty-printed
+        queryIssueTemplate = Regex.Replace(queryIssueTemplate.Trim(), @"\s+", " ");
+        mutationIssueCreateTemplate = Regex.Replace(mutationIssueCreateTemplate.Trim(), @"\s+", " ");
     }
 
     public IActionResult OnGet() => Page();
@@ -57,32 +85,98 @@ mutation IssueCreate {
         string urgency,
         string[] stepsToReproduce)
     {
-        var query = Regex.Replace(issueCreateQueryTemplate.Trim(), @"\s+", " ")
-            .Replace("<%TITLE%>", title?.Trim())
-            .Replace("<%DESCRIPTION%>", description?.Trim())
+        var form = new FormData(
+            title,
+            description,
+            product,
+            zendeskTicketNumber,
+            customer,
+            user,
+            customersImpacted,
+            urgency,
+            stepsToReproduce);
+
+        var createResponse = await PostToLinearApi(BuildMutationIssueCreatePayload(form));
+
+        var newIssueId = createResponse["data"]?["issueCreate"]?["issue"]?["id"] ??
+            throw new InvalidOperationException("No issue ID found from newly created issue");
+
+        var getResponse = await PostToLinearApi(BuildQueryIssuePayload((string)newIssueId!));
+
+        var url = getResponse["data"]?["issue"]?["url"] ??
+            throw new InvalidOperationException("No issue URL found when querying information for new issue");
+
+        var sb = new StringBuilder();
+        sb.AppendLine("<h3>Submission successful</h3>");
+        sb.AppendLine("<br />");
+        sb.AppendLine($@"Go to issue <a href=""{url}"">here</a>");
+        sb.AppendLine("<br />");
+        sb.AppendLine(@"Create another issue <a href=""/BugForm"">here</a>");
+
+        return new ContentResult()
+        {
+            Content = sb.ToString(),
+            ContentType = "text/html",
+            StatusCode = (int)System.Net.HttpStatusCode.OK,
+        };
+    }
+
+    private void LogPrettyJson(string jsonString)
+    {
+        // JSON encoding turns double-quotes within strings into "\u0022".
+        // Looks ugly in the console
+        logger.LogDebug(jsonString.Replace(@"\u0022", "'"));
+    }
+
+    private StringContent BuildQueryIssuePayload(string guid)
+    {
+        var query = queryIssueTemplate.Replace("<%ID%>", guid);
+        var jsonString = new JsonObject() { ["query"] = query }.ToJsonString();
+
+        LogPrettyJson(jsonString);
+
+        return new StringContent(jsonString, Encoding.UTF8, "application/json");
+    }
+
+    private StringContent BuildMutationIssueCreatePayload(FormData form)
+    {
+        var query = mutationIssueCreateTemplate
+            .Replace("<%TITLE%>", form.Title?.Trim())
+            .Replace("<%DESCRIPTION%>", form.Description?.Trim())
             .Replace("<%TEAM_ID%>", linearTeam);
 
-        var queryJson = new JsonObject()
-        {
-            ["query"] = query
-        }.ToJsonString();
+        var jsonString = new JsonObject() { ["query"] = query }.ToJsonString();
 
-        logger.LogDebug("Request body ==> {responseString}", queryJson.Replace(@"\u0022", "'"));
+        LogPrettyJson(jsonString);
 
-        var identity = HttpContext.User.Identity as ClaimsIdentity;
-        var claim = identity!.FindFirst(ClaimTypes.Name)!;
+        return new StringContent(jsonString, Encoding.UTF8, "application/json");
+    }
 
+    private AuthenticationHeaderValue CreateAuthHeader()
+    {
+        var identity = (HttpContext.User.Identity as ClaimsIdentity) ??
+            throw new InvalidOperationException($"Failed to get {nameof(ClaimsIdentity)}");
+
+        var claim = identity.FindFirst(ClaimTypes.Name) ??
+            throw new InvalidOperationException($"Failed to get {nameof(ClaimTypes.Name)}");
+
+        return new AuthenticationHeaderValue("Bearer", claim.Value);
+    }
+
+    private async Task<JsonObject> PostToLinearApi(StringContent payload)
+    {
         using var request = new HttpRequestMessage();
+        request.Headers.Authorization = CreateAuthHeader();
         request.Method = HttpMethod.Post;
-        request.Content = new StringContent(queryJson, Encoding.UTF8, "application/json");
-        request.RequestUri = new Uri("https://api.linear.app/graphql");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", claim.Value);
+        request.Content = payload;
+        request.RequestUri = new Uri(graphqlEndpoint);
 
         var response = await client.SendAsync(request);
-        var responseString = await response.Content.ReadAsStringAsync();
+        var jsonString = await response.Content.ReadAsStringAsync();
 
-        logger.LogDebug("Response body ==> {responseString}", responseString);
+        logger.LogInformation(jsonString);
 
-        return Content("Submission successful");
+        return JsonSerializer.Deserialize<JsonObject>(jsonString) ??
+            throw new InvalidOperationException("Bad JSON response");
     }
 }
