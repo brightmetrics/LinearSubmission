@@ -2,6 +2,8 @@ import { marked } from "marked";
 import { createRoot } from "react-dom/client";
 import { ReactElement, useState } from "react";
 
+declare const PAGE: string
+
 type Action<T> = ((x: T) => void)
 type FormFields = {
   title: string
@@ -10,15 +12,13 @@ type FormFields = {
   customer: string
   user: string
   customersImpacted: string
-  stepsToReproduce: string[]
+  stepsToReproduce: Step[]
   urgency: string
   zendeskTicketNumber: string
 }
 
-const pageId = "form";
-const content = document.getElementById(pageId);
-if (content) {
-  const root = createRoot(content);
+if (PAGE === "bug-form") {
+  const root = createRoot(document.forms[0]);
   root.render(createContent());
 }
 
@@ -27,11 +27,8 @@ function createContent(): ReactElement {
 }
 
 class Step {
-  public id = (Step.ids[this.index] ??= ++Step.nextid)
-  constructor(
-    public index: number,
-    public value: string = "") { }
-  static ids: Record<number, number> = {}
+  public id = ++Step.nextid
+  constructor(public value: string = "") { }
   static nextid = 0
 }
 
@@ -66,23 +63,11 @@ export function FormContent() {
   let [urgency, setUrgency] = useState(urgencyScale[0])
   let [user, setUser] = useState("")
   let [customersImpacted, setCustomersImpacted] = useState(impactedScale[0])
-  let [stepsToReproduce, setStepsToReproduce] = useState<string[]>([""])
-  let projectedSteps: Step[] = []
+  let [stepsToReproduce, setStepsToReproduce] = useState<Step[]>([new Step()])
   // Represents a Step that has just been added via the UI
-  let [newStep, setNewStep] = useState<number | null>(null)
-  let timeoutHandle = -1
+  let [newStep, setNewStep] = useState<Step | null>(null)
   return (
-    <div className="wrapper"
-         ref={_ => {
-              if (timeoutHandle) {
-                clearTimeout(timeoutHandle)
-              }
-              timeoutHandle = setTimeout(() => {
-                setNewStep(null)
-                timeoutHandle = 0
-              }, 100)
-           }
-         }>
+    <div className="wrapper">
       <div className="editor pane">
         <h1>Linear Bug Template</h1>
 
@@ -207,15 +192,11 @@ export function FormContent() {
             <span className="mr-5">Steps to reproduce (<code>Enter</code> to add step)</span>
             <ol>
               {
-                stepsToReproduce.map((text, i, { length: len }) => {
-                  const step = new Step(i, text)
-                  if (i === 0)
-                    projectedSteps.length = 0
-                  projectedSteps.push(step)
-
+                stepsToReproduce.map((step, i, { length: len }) => {
                   return <StepToReproduce
                       key={step.id}
                       step={step}
+                      stepsToReproduce={stepsToReproduce}
                       newStep={newStep}
                       setNewStep={setNewStep}
                       removeStep={len === 1 ? null : removeStep}
@@ -235,7 +216,6 @@ export function FormContent() {
 
       <div className="preview pane">
         <strong className="mr-5">Your submission will look like this in Linear</strong>
-        <a href="#">(copy raw markdown)</a>
         <hr />
         <MarkdownContent {...{
           title,
@@ -250,37 +230,26 @@ export function FormContent() {
     </div>
   )
 
-  function throwIfWeirdState() {
-      if (projectedSteps.length != stepsToReproduce.length)
-        throw new Error(`Projection out of sync ${projectedSteps.length} vs. ${stepsToReproduce.length}`);
-  }
-
   function addStep(index: number) {
-    Step.ids = {}
-    const step = new Step(index)
-    setNewStep(step.id)
+    const step = new Step()
+    setNewStep(step)
     if (index >= stepsToReproduce.length) {
-      setStepsToReproduce([...stepsToReproduce, step.value])
+      setStepsToReproduce([...stepsToReproduce, step])
     } else {
-      stepsToReproduce.splice(index, 0, step.value)
+      stepsToReproduce.splice(index, 0, step)
       setStepsToReproduce([...stepsToReproduce])
     }
   }
 
   function updateStep(s: Step) {
-    const i = projectedSteps.indexOf(s)
-    if (i > -1) {
-      throwIfWeirdState()
-      stepsToReproduce.splice(i, 1, s.value)
-      setStepsToReproduce([...stepsToReproduce])
-    }
+    const i = stepsToReproduce.findIndex(_s => _s.id === s.id)
+    stepsToReproduce.splice(i, 1, s)
+    setStepsToReproduce([...stepsToReproduce])
   }
 
   function removeStep(s: Step) {
-    throwIfWeirdState()
-    const i = projectedSteps.indexOf(s)
+    const i = stepsToReproduce.findIndex(_s => _s.id === s.id)
     stepsToReproduce.splice(i, 1);
-    delete Step.ids[i]
     setStepsToReproduce([...stepsToReproduce])
   }
 
@@ -292,7 +261,7 @@ export function FormContent() {
     }
     const form = document.forms[0]
     form.appendChild(createHiddenMarkdownFormField());
-    form.submit()
+    form.requestSubmit()
   }
 
   function createHiddenMarkdownFormField(): HTMLInputElement {
@@ -318,15 +287,24 @@ export function FormContent() {
 
 type StepToReproduceProps = {
   step: Step
+  stepsToReproduce: Step[]
   /** number is the step.id */
-  newStep: number|null
-  setNewStep: Action<number|null>
+  newStep: Step|null
+  setNewStep: Action<Step|null>
   removeStep: Action<Step>|null
   addStep: Action<number>
   updateStep: Action<Step>
 }
 
-function StepToReproduce({ step, newStep, setNewStep, removeStep, addStep, updateStep }: StepToReproduceProps) {
+function StepToReproduce({
+  step,
+  stepsToReproduce,
+  newStep,
+  setNewStep,
+  removeStep,
+  addStep,
+  updateStep,
+}: StepToReproduceProps) {
   return <li>
     <div className="step">
       <textarea onChange={onChange}
@@ -336,7 +314,7 @@ function StepToReproduce({ step, newStep, setNewStep, removeStep, addStep, updat
                 autoComplete="off"
                 value={step.value}
                 rows={1}
-                ref={el => step.id === newStep && (setNewStep(null), el?.focus())}
+                ref={el => step === newStep && (setNewStep(null), el?.focus())}
       ></textarea>
       <button type="button"
               onClick={_ => removeStep?.(step)}
@@ -355,7 +333,8 @@ function StepToReproduce({ step, newStep, setNewStep, removeStep, addStep, updat
         const len = (target.value += "\n").length
         target.setSelectionRange(len, len)
       } else {
-        addStep(step.index + 1)
+        const index = stepsToReproduce.indexOf(step)
+        addStep(index + 1)
         e.preventDefault()
       }
     }
@@ -395,6 +374,7 @@ function createMarkdown({
   stepsToReproduce,
   urgency,
 }: FormFields2): string {
+  const steps = stepsToReproduce.map(s => s.value)
   return [
     createHeader(1, title),
     createParagraph(description),
@@ -404,7 +384,7 @@ function createMarkdown({
       [product ?? "N/A", customer ?? "N/A", customersImpacted, urgency]),
     // createNewline(),
     createHeader(3, "Steps to Reproduce"),
-    ...createOrderedList(stepsToReproduce ?? []),
+    ...createOrderedList(steps ?? []),
   ].join("\n")
 }
 
@@ -432,5 +412,5 @@ function createTable(headers: string[], cells: string[]): string[] {
 }
 
 function createOrderedList(items: string[]): string[] {
-  return items.filter(i => i).map(i => "1. " + i)
+  return items.filter(i => i.trim()).map(i => "1. " + i)
 }
