@@ -89,7 +89,7 @@ export function FormContent() {
           <label htmlFor="desc">Description*</label>
           <textarea id="desc"
                     name="description"
-                    className="focusable"
+                    className="focusable field-1"
                     placeholder="What sort of expectation isn't being met?"
                     rows={10}
                     value={description}
@@ -189,7 +189,7 @@ export function FormContent() {
 
         <fieldset>
           <div>
-            <span className="mr-5">Steps to reproduce (<code>Enter</code> to add step)</span>
+            <label className="mr-5">Steps to reproduce (<code>Enter</code> to add step)</label>
             <ol>
               {
                 stepsToReproduce.map((step, i, { length: len }) => {
@@ -215,8 +215,8 @@ export function FormContent() {
       </div>
 
       <div className="preview pane">
-        <strong className="mr-5">Your submission will look like this in Linear</strong>
-        <hr />
+        <p className="preview-title">Your submission will look like this in Linear:</p>
+        <br />
         <MarkdownContent {...{
           title,
           description,
