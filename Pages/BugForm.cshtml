@@ -3,19 +3,6 @@
 @{
     ViewData["Title"] = "Bug Form";
 }
-<form method="POST" id="form" onsubmit="onSubmit(event)"
-                              onkeydown="onKeyDown(event)"
-                              onkeyup="onKeyDown(event)">
-
-</form>
-<script>
-  var okToSubmit = false
-  function onSubmit(e) {
-    if (!okToSubmit)
-      e.preventDefault()
-  }
-  function onKeyDown(e) {
-    if (e.key == "Enter" && !okToSubmit)
-      e.preventDefault()
-  }
-</script>
+<form method="POST"
+      id="form"
+      onsubmit="event.preventDefault();return false"></form>

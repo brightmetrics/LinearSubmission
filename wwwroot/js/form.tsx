@@ -2,9 +2,6 @@ import { marked } from "marked";
 import { createRoot } from "react-dom/client";
 import { ReactElement, useState } from "react";
 
-// TODO hacky
-declare var okToSubmit: boolean
-
 type Action<T> = ((x: T) => void)
 type FormFields = {
   title: string
@@ -287,9 +284,18 @@ export function FormContent() {
     setStepsToReproduce([...stepsToReproduce])
   }
 
-  function submitClick(e: React.MouseEvent<HTMLInputElement>) {
-    okToSubmit = true
+  function submitClick(e: React.PointerEvent<HTMLInputElement>) {
+    // Ignore synthetic events due to hitting ENTER in an input, etc.
+    if (e.nativeEvent.pointerId === -1) {
+      e.preventDefault()
+      return false
+    }
     const form = document.forms[0]
+    form.appendChild(createHiddenMarkdownFormField());
+    form.submit()
+  }
+
+  function createHiddenMarkdownFormField(): HTMLInputElement {
     const mdElement = document.createElement("INPUT") as HTMLInputElement;
     mdElement.setAttribute("type", "hidden");
     mdElement.setAttribute("name", "markdown");
@@ -302,8 +308,7 @@ export function FormContent() {
       urgency,
       stepsToReproduce,
     })
-    form.appendChild(mdElement);
-    form.submit()
+    return mdElement;
   }
 
   function markTouched(e: React.FocusEvent<HTMLElement>): void {
@@ -333,7 +338,8 @@ function StepToReproduce({ step, newStep, setNewStep, removeStep, addStep, updat
                 rows={1}
                 ref={el => step.id === newStep && (setNewStep(null), el?.focus())}
       ></textarea>
-      <button onClick={_ => removeStep?.(step)}
+      <button type="button"
+              onClick={_ => removeStep?.(step)}
               disabled={!removeStep}>
         Remove
       </button>

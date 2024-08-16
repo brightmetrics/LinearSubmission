@@ -12,7 +12,7 @@ end_of_line =                                                       crlf
 trim_trailing_whitespace =                                          true
 insert_final_newline =                                              true
 
-[*.{xml,csproj}]
+[*.{xml,html,csproj,css,js,json,tsx,ts,yml}]
 ###############################################################################
 #                          Code With Compact Styling                          #
 # OPTION                                                            SETTING   #
