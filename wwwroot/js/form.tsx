@@ -1,5 +1,4 @@
 import { marked } from "marked";
-import MDEditor from "@uiw/react-md-editor";
 import { createRoot } from "react-dom/client";
 import { ReactElement, useState } from "react";
 
@@ -86,22 +85,19 @@ export function FormContent() {
           />
         </fieldset>
 
-        <div>
+        <fieldset>
           <label htmlFor="desc">Description*</label>
-          <div className="container">
-          <MDEditor textareaProps={{
-                      id: "desc",
-                      name: "description",
-                      placeholder: "What sort of expectation isn't being met?",
-                      rows: 10,
-                      required: true,
-                      onBlur: markTouched,
-                    }}
+          <textarea id="desc"
+                    name="description"
+                    className="focusable field-1"
+                    placeholder="What sort of expectation isn't being met?"
+                    rows={10}
                     value={description}
-                    onChange={value => setDescription(value!)}
-          />
-          </div>
-        </div>
+                    required={true}
+                    onBlur={markTouched}
+                    onChange={e => setDescription(e.target.value)}
+          ></textarea>
+        </fieldset>
 
         <fieldset>
           <label htmlFor="product">Product*</label>
@@ -382,11 +378,11 @@ function createMarkdown({
   return [
     createHeader(1, title),
     createParagraph(description),
-    createNewline(),
+    // createNewline(),
     ...createTable(
       ["Product", "Customer", "Impacted", "Urgency"],
       [product ?? "N/A", customer ?? "N/A", customersImpacted, urgency]),
-    createNewline(),
+    // createNewline(),
     createHeader(3, "Steps to Reproduce"),
     ...createOrderedList(steps ?? []),
   ].join("\n")
@@ -401,9 +397,7 @@ function createNewline(count: number = 1) {
 }
 
 function createParagraph(text: string): string {
-  const rows = text.split("\n")
-  return rows.map(r => r.trim() === "" ? "\n&nbsp;" : r)
-             .join("\n")
+  return text
 }
 
 function createTable(headers: string[], cells: string[]): string[] {
