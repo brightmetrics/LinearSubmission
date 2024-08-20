@@ -30,6 +30,7 @@ public class BugFormModel : PageModel
     private readonly ILogger<BugFormModel> logger;
     private readonly HttpClient client = new();
     private readonly string linearTeam;
+    private readonly string linearLabels;
     private readonly string graphqlEndpoint;
     private readonly string mutationIssueCreateTemplate = @"
 mutation IssueCreate {
@@ -38,6 +39,7 @@ mutation IssueCreate {
       title: ""<%TITLE%>""
       description: ""<%DESCRIPTION%>""
       teamId: ""<%TEAM_ID%>""
+      labelIds: [""<%LABEL_IDS%>""]
     }
   ) {
     success
@@ -62,6 +64,9 @@ query {
 
         linearTeam = configuration["LinearTeam"] ??
             throw new InvalidOperationException("No LinearTeam found in configuration");
+
+        linearLabels = configuration["LinearLabels"] ??
+            throw new InvalidOperationException("No LinearLabels found in configuration");
 
         graphqlEndpoint = configuration["GraphQLEndpoint"] ??
             throw new InvalidOperationException("No GraphQLEndpoint found in configuration");
@@ -138,7 +143,8 @@ query {
                     .Replace("\r", "")
                     .Replace("\n", "\\n")
                     .Trim())
-            .Replace("<%TEAM_ID%>", linearTeam);
+            .Replace("<%TEAM_ID%>", linearTeam)
+            .Replace("<%LABEL_IDS%>", linearLabels);
 
         var jsonString = new JsonObject() { ["query"] = query }.ToJsonString();
 
