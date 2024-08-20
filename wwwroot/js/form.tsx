@@ -261,7 +261,9 @@ export function FormContent() {
     }
     const form = document.forms[0]
     form.appendChild(createHiddenMarkdownFormField());
-    form.requestSubmit()
+    if (form.reportValidity()) {
+      form.submit()
+    }
   }
 
   function createHiddenMarkdownFormField(): HTMLInputElement {
