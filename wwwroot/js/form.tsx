@@ -119,7 +119,9 @@ export function FormContent() {
         <fieldset>
           <label htmlFor="zendeskTicketNumber">Zendesk Ticket #</label>
           <input id="zendeskTicketNumber"
-                 type="text"
+                 type="number"
+                 min="0"
+                 max="999999"
                  name="zendeskTicketNumber"
                  placeholder="If applicable"
                  className="focusable field-1"
@@ -189,7 +191,7 @@ export function FormContent() {
 
         <fieldset>
           <div>
-            <label className="mr-5">Steps to reproduce (<code>Enter</code> to add step)</label>
+            <label className="mr-5">Steps to reproduce and/or links(<code>Enter</code> to add step)</label>
             <ol>
               {
                 stepsToReproduce.map((step, i, { length: len }) => {
@@ -346,7 +348,7 @@ function createMarkdown({
   return [
     createHeader(1, title),
     createParagraph(description),
-    // createNewline(),
+    createNewline(),
     ...createTable(
       ["Product", "Customer", "Impacted", "Urgency"],
       [product ?? "N/A", customer ?? "N/A", customersImpacted, urgency]),
@@ -361,7 +363,7 @@ function createHeader(level: number, text: string): string {
 }
 
 function createNewline(count: number = 1) {
-  return "\n".repeat(count)
+  return "\n&nbsp;".repeat(count)
 }
 
 function createParagraph(text: string): string {

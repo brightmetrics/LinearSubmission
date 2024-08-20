@@ -54,6 +54,7 @@ internal class Program
                 options.ClientId = configuration["CLIENT_ID"]!;
                 options.ClientSecret = configuration["CLIENT_SECRET"]!;
                 options.Scope.Add("issues:create");
+                options.Scope.Add("write");
             });
     }
 

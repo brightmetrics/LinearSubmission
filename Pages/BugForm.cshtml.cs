@@ -32,6 +32,7 @@ public class BugFormModel : PageModel
     private readonly string linearTeam;
     private readonly string linearLabels;
     private readonly string graphqlEndpoint;
+    private readonly string ticketsEndpoint;
     private readonly string mutationIssueCreateTemplate = @"
 mutation IssueCreate {
   issueCreate(
@@ -46,6 +47,14 @@ mutation IssueCreate {
     issue {
       id
       title
+    }
+  }
+}";
+    private readonly string mutationAttachmentLinkUrl = @"
+mutation AttachmentLinkURL {
+  attachmentLinkURL(url: ""<%URL%>"", issueId: ""<%ID%>"") {
+    attachment {
+      url
     }
   }
 }";
@@ -68,6 +77,10 @@ query {
         linearLabels = configuration["LinearLabels"] ??
             throw new InvalidOperationException("No LinearLabels found in configuration");
 
+        ticketsEndpoint = configuration["ZendeskTicketsEndpoint"] ??
+            throw new InvalidOperationException("No ZendeskTicketsEndpoint found in configuration");
+        ticketsEndpoint = "https://example.com?ticket="; // TODO
+
         graphqlEndpoint = configuration["GraphQLEndpoint"] ??
             throw new InvalidOperationException("No GraphQLEndpoint found in configuration");
 
@@ -75,6 +88,7 @@ query {
         // pretty-printed
         queryIssueTemplate = Regex.Replace(queryIssueTemplate.Trim(), @"\s+", " ");
         mutationIssueCreateTemplate = Regex.Replace(mutationIssueCreateTemplate.Trim(), @"\s+", " ");
+        mutationAttachmentLinkUrl = Regex.Replace(mutationAttachmentLinkUrl.Trim(), @"\s+", " ");
     }
 
     public IActionResult OnGet() => Page();
@@ -104,10 +118,16 @@ query {
 
         var createResponse = await PostToLinearApi(BuildMutationIssueCreatePayload(form, markdown));
 
-        var newIssueId = createResponse["data"]?["issueCreate"]?["issue"]?["id"] ??
+        var o = (createResponse["data"]?["issueCreate"]?["issue"]?["id"]) ??
             throw new InvalidOperationException("No issue ID found from newly created issue");
+        var newIssueId = (string)o!;
 
-        var getResponse = await PostToLinearApi(BuildQueryIssuePayload((string)newIssueId!));
+        if (!string.IsNullOrEmpty(form.ZendeskTicketNumber))
+        {
+            await PostToLinearApi(BuildMutationAttachmentLinkUrlPayload(form, newIssueId));
+        }
+
+        var getResponse = await PostToLinearApi(BuildQueryIssuePayload(newIssueId));
 
         var url = getResponse["data"]?["issue"]?["url"] ??
             throw new InvalidOperationException("No issue URL found when querying information for new issue");
@@ -130,6 +150,18 @@ query {
     private StringContent BuildQueryIssuePayload(string guid)
     {
         var query = queryIssueTemplate.Replace("<%ID%>", guid);
+        var jsonString = new JsonObject() { ["query"] = query }.ToJsonString();
+
+        return new StringContent(jsonString, Encoding.UTF8, "application/json");
+    }
+
+    private StringContent BuildMutationAttachmentLinkUrlPayload(
+        FormData form,
+        string issueId)
+    {
+        var query = mutationAttachmentLinkUrl
+            .Replace("<%ID%>", issueId)
+            .Replace("<%URL%>", ticketsEndpoint + form.ZendeskTicketNumber!);
         var jsonString = new JsonObject() { ["query"] = query }.ToJsonString();
 
         return new StringContent(jsonString, Encoding.UTF8, "application/json");
