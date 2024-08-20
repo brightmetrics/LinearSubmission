@@ -86,8 +86,6 @@ query {
         string[] stepsToReproduce,
         string markdown)
     {
-        logger.LogDebug(markdown);
-
         var form = new FormData(
             title,
             description,
@@ -124,19 +122,10 @@ query {
         };
     }
 
-    private void LogPrettyJson(string jsonString)
-    {
-        // JSON encoding turns double-quotes within strings into "\u0022".
-        // Looks ugly in the console
-        logger.LogDebug(jsonString.Replace(@"\u0022", "'"));
-    }
-
     private StringContent BuildQueryIssuePayload(string guid)
     {
         var query = queryIssueTemplate.Replace("<%ID%>", guid);
         var jsonString = new JsonObject() { ["query"] = query }.ToJsonString();
-
-        LogPrettyJson(jsonString);
 
         return new StringContent(jsonString, Encoding.UTF8, "application/json");
     }
@@ -152,8 +141,6 @@ query {
             .Replace("<%TEAM_ID%>", linearTeam);
 
         var jsonString = new JsonObject() { ["query"] = query }.ToJsonString();
-
-        LogPrettyJson(jsonString);
 
         return new StringContent(jsonString, Encoding.UTF8, "application/json");
     }
@@ -180,7 +167,7 @@ query {
         var response = await client.SendAsync(request);
         var jsonString = await response.Content.ReadAsStringAsync();
 
-        logger.LogInformation(jsonString);
+        logger.LogInformation("Response {response}", jsonString);
 
         return JsonSerializer.Deserialize<JsonObject>(jsonString) ??
             throw new InvalidOperationException("Bad JSON response");

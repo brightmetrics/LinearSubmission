@@ -213,20 +213,6 @@ export function FormContent() {
           <input type="submit" value="Submit" onClick={submitClick} />
         </fieldset>
       </div>
-
-      <div className="preview pane">
-        <p className="preview-title">Your submission will look like this in Linear:</p>
-        <br />
-        <MarkdownContent {...{
-          title,
-          description,
-          product,
-          customer,
-          customersImpacted,
-          urgency,
-          stepsToReproduce,
-        }} />
-      </div>
     </div>
   )
 
@@ -273,13 +259,15 @@ export function FormContent() {
     mdElement.setAttribute("type", "hidden");
     mdElement.setAttribute("name", "markdown");
     mdElement.value = createMarkdown({
-      title,
-      description,
-      product,
       customer,
       customersImpacted,
-      urgency,
+      description,
+      product,
       stepsToReproduce,
+      title,
+      urgency,
+      user,
+      zendeskTicketNumber,
     })
     return mdElement;
   }
@@ -292,7 +280,6 @@ export function FormContent() {
 type StepToReproduceProps = {
   step: Step
   stepsToReproduce: Step[]
-  /** number is the step.id */
   newStep: Step|null
   setNewStep: Action<Step|null>
   removeStep: Action<Step>|null
@@ -330,22 +317,10 @@ function StepToReproduce({
 
   function onKeyDown(e: React.KeyboardEvent<HTMLElement>): void {
     if (e.key?.toLowerCase() === "enter") {
-      const target = e.target
-      if (e.shiftKey && isTextArea(target)) {
-        // Act as if adding a newline
-        target.rows += 1
-        const len = (target.value += "\n").length
-        target.setSelectionRange(len, len)
-      } else {
-        const index = stepsToReproduce.indexOf(step)
-        addStep(index + 1)
-        e.preventDefault()
-      }
+      const index = stepsToReproduce.indexOf(step)
+      addStep(index + 1)
+      e.preventDefault()
     }
-  }
-
-  function isTextArea(n: any): n is HTMLTextAreaElement {
-    return n?.nodeName === "TEXTAREA"
   }
 
   function onChange(e: React.ChangeEvent<HTMLTextAreaElement>): void {
@@ -353,31 +328,20 @@ function StepToReproduce({
     updateStep(step)
   }
 }
-
-type FormFields2 = Omit<FormFields, "zendeskTicketNumber" | "user">
-
-function MarkdownContent(formFields: FormFields2) {
-  return <div className="md-content"
-              dangerouslySetInnerHTML={compileMarkdown(formFields)}></div>
-
-  function compileMarkdown(formFields: FormFields2) {
-    const markdown = createMarkdown(formFields)
-    const __html = marked.parse(markdown, { gfm: true }) as string
-    return { __html }
-  }
-}
 //
 // Markdown helpers
 //
 function createMarkdown({
-  title,
-  description,
-  product,
   customer,
   customersImpacted,
+  description,
+  product,
   stepsToReproduce,
+  title,
   urgency,
-}: FormFields2): string {
+  user,
+  zendeskTicketNumber,
+}: FormFields): string {
   const steps = stepsToReproduce.map(s => s.value)
   return [
     createHeader(1, title),
