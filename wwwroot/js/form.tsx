@@ -254,15 +254,17 @@ export function FormContent() {
   }
 
   function submitClick(e: React.PointerEvent<HTMLInputElement>) {
+    const submit = e.target as HTMLInputElement
     // Ignore synthetic events due to hitting ENTER in an input, etc.
-    if (e.nativeEvent.pointerId === -1) {
+    if (e.nativeEvent.pointerId === -1 || submit.disabled) {
       e.preventDefault()
       return false
     }
     const form = document.forms[0]
-    form.appendChild(createHiddenMarkdownFormField());
     if (form.reportValidity()) {
+      form.appendChild(createHiddenMarkdownFormField());
       form.submit()
+      submit.disabled = true
     }
   }
 
