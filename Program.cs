@@ -55,6 +55,14 @@ internal static class Program
                 options.ClientSecret = configuration["CLIENT_SECRET"]!;
                 options.Scope.Add("issues:create");
                 options.Scope.Add("write");
+                options.Events = new OAuthEvents()
+                {
+                    OnRedirectToAuthorizationEndpoint = ctx =>
+                    {
+                        ctx.HttpContext.Response.Redirect(ctx.RedirectUri + "&prompt=consent");
+                        return Task.FromResult(0);
+                    },
+                };
             });
     }
 
