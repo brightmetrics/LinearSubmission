@@ -7,7 +7,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace LinearSubmission;
 
-internal class Program
+internal static class Program
 {
     static IConfigurationRoot GetConfiguration(WebApplicationBuilder builder)
     {

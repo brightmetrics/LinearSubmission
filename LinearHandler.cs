@@ -38,7 +38,7 @@ public class LinearHandler : OAuthHandler<OAuthOptions>
         OAuthTokenResponse tokens)
     {
         if (string.IsNullOrEmpty(tokens?.AccessToken))
-            throw new ArgumentNullException(nameof(tokens.AccessToken));
+            throw new InvalidOperationExceptionS(nameof(tokens.AccessToken));
 
         if (identity == null)
             throw new ArgumentNullException(nameof(identity));
