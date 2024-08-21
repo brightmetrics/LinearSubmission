@@ -9,6 +9,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using LinearSubmission.GraphQL;
 
 namespace LinearSubmission.Pages;
 
@@ -33,39 +34,6 @@ public class BugFormModel : PageModel
     private readonly string linearLabels;
     private readonly string graphqlEndpoint;
     private readonly string ticketsEndpoint;
-    private readonly string mutationIssueCreateTemplate = @"
-mutation IssueCreate {
-  issueCreate(
-    input: {
-      title: ""<%TITLE%>""
-      description: ""<%DESCRIPTION%>""
-      teamId: ""<%TEAM_ID%>""
-      labelIds: [""<%LABEL_IDS%>""]
-    }
-  ) {
-    success
-    issue {
-      id
-      title
-    }
-  }
-}";
-    private readonly string mutationAttachmentLinkUrl = @"
-mutation AttachmentLinkURL {
-  attachmentLinkURL(url: ""<%URL%>"", issueId: ""<%ID%>"") {
-    attachment {
-      url
-    }
-  }
-}";
-    private readonly string queryIssueTemplate = @"
-query {
-  issue(id: ""<%ID%>"") {
-    number,
-    identifier,
-    url
-  }
-}";
 
     public BugFormModel(ILogger<BugFormModel> logger, IConfiguration configuration)
     {
@@ -83,12 +51,6 @@ query {
 
         graphqlEndpoint = configuration["GraphQLEndpoint"] ??
             throw new InvalidOperationException("No GraphQLEndpoint found in configuration");
-
-        // Clean the templates for usage, since it looks better in source when
-        // pretty-printed
-        queryIssueTemplate = Regex.Replace(queryIssueTemplate.Trim(), @"\s+", " ");
-        mutationIssueCreateTemplate = Regex.Replace(mutationIssueCreateTemplate.Trim(), @"\s+", " ");
-        mutationAttachmentLinkUrl = Regex.Replace(mutationAttachmentLinkUrl.Trim(), @"\s+", " ");
     }
 
     public IActionResult OnGet() => Page();
@@ -149,38 +111,47 @@ query {
 
     private StringContent BuildQueryIssuePayload(string guid)
     {
-        var query = queryIssueTemplate.Replace("<%ID%>", guid);
-        var jsonString = new JsonObject() { ["query"] = query }.ToJsonString();
-
-        return new StringContent(jsonString, Encoding.UTF8, "application/json");
+        var query = new IssueQuery()
+        {
+            Variables = new()
+            {
+                Id = guid,
+            }
+        };
+        return new StringContent(query.ToString(), Encoding.UTF8, "application/json");
     }
 
     private StringContent BuildMutationAttachmentLinkUrlPayload(
         FormData form,
         string issueId)
     {
-        var query = mutationAttachmentLinkUrl
-            .Replace("<%ID%>", issueId)
-            .Replace("<%URL%>", ticketsEndpoint + form.ZendeskTicketNumber!);
-        var jsonString = new JsonObject() { ["query"] = query }.ToJsonString();
-
-        return new StringContent(jsonString, Encoding.UTF8, "application/json");
+        var mutation = new AttachmentLinkUrlMutation()
+        {
+            Variables = new()
+            {
+                IssueId = issueId,
+                Url = ticketsEndpoint + form.ZendeskTicketNumber!,
+            },
+        };
+        return new StringContent(mutation.ToString(), Encoding.UTF8, "application/json");
     }
 
     private StringContent BuildMutationIssueCreatePayload(FormData form, string markdown)
     {
-        var query = mutationIssueCreateTemplate
-            .Replace("<%TITLE%>", form.Title?.Trim())
-            .Replace("<%DESCRIPTION%>", markdown
-                    .Replace("\r", "")
-                    .Replace("\n", "\\n")
-                    .Trim())
-            .Replace("<%TEAM_ID%>", linearTeam)
-            .Replace("<%LABEL_IDS%>", linearLabels);
-
-        var jsonString = new JsonObject() { ["query"] = query }.ToJsonString();
-
-        return new StringContent(jsonString, Encoding.UTF8, "application/json");
+        var mutation = new IssueCreateMutation()
+        {
+            Variables = new()
+            {
+                Input = new()
+                {
+                    Title = form.Title?.Trim() ?? "",
+                    Description = markdown.Replace("\r", "").Trim(),
+                    TeamId = linearTeam,
+                    LabelIds = new[] { linearLabels },
+                },
+            },
+        };
+        return new StringContent(mutation.ToString(), Encoding.UTF8, "application/json");
     }
 
     private AuthenticationHeaderValue CreateAuthHeader()

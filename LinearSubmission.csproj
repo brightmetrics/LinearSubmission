@@ -6,4 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>088b3caa-65f0-4b67-a7e1-7d137f7cc5bb</UserSecretsId>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Text.Encodings.Web" Version="8.0.0" />
+  </ItemGroup>
 </Project>
