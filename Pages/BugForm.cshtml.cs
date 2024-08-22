@@ -25,13 +25,13 @@ public class BugFormModel : PageModel
         string Customer,
         string User,
         string CustomersImpacted,
-        string Urgency,
+        int Urgency,
         string[] StepsToReproduce);
 
     private readonly ILogger<BugFormModel> logger;
     private readonly HttpClient client = new();
     private readonly string linearTeam;
-    private readonly string linearLabels;
+    private readonly IConfigurationSection linearLabels;
     private readonly string graphqlEndpoint;
     private readonly string ticketsEndpoint;
 
@@ -42,7 +42,7 @@ public class BugFormModel : PageModel
         linearTeam = configuration["LinearTeam"] ??
             throw new InvalidOperationException("No LinearTeam found in configuration");
 
-        linearLabels = configuration["LinearLabels"] ??
+        linearLabels = configuration.GetSection("LinearLabels") ??
             throw new InvalidOperationException("No LinearLabels found in configuration");
 
         ticketsEndpoint = configuration["ZendeskTicketsEndpoint"] ??
@@ -63,7 +63,7 @@ public class BugFormModel : PageModel
         string customer,
         string user,
         string customersImpacted,
-        string urgency,
+        int urgency,
         string[] stepsToReproduce,
         string markdown)
     {
@@ -138,6 +138,12 @@ public class BugFormModel : PageModel
 
     private StringContent BuildMutationIssueCreatePayload(FormData form, string markdown)
     {
+        List<string> labels = [linearLabels["Bug"]!];
+
+        var productLabel = linearLabels[form.Product];
+        if (!string.IsNullOrEmpty(productLabel))
+            labels.Add(productLabel);
+
         var mutation = new IssueCreateMutation()
         {
             Variables = new()
@@ -147,7 +153,8 @@ public class BugFormModel : PageModel
                     Title = form.Title?.Trim() ?? "",
                     Description = markdown.Replace("\r", "").Trim(),
                     TeamId = linearTeam,
-                    LabelIds = new[] { linearLabels },
+                    LabelIds = labels.ToArray(),
+                    Priority = form.Urgency,
                 },
             },
         };

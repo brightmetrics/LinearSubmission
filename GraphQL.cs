@@ -5,6 +5,12 @@ using System.Text.Json.Nodes;
 
 namespace LinearSubmission.GraphQL;
 
+public class LinearLabel
+{
+    public string? Name { get; set; }
+    public string? Id { get; set; }
+}
+
 public class IssueArguments
 {
     public string? Id { get; set; }
@@ -34,6 +40,7 @@ public class IssueCreateInput
     public string? Description { get; set; }
     public string? TeamId { get; set; }
     public string[]? LabelIds { get; set; } = [];
+    public int Priority { get; set; }
 }
 
 public class IssueCreateMutation : MutationOrQuery<IssueCreateArguments>
@@ -85,14 +92,17 @@ public abstract class MutationOrQuery<T>
         return Regex.Replace(multilineTemplateString.Trim(), @"\s+", " ");
     }
 
-    private static JsonSerializerOptions serializerOptions = new()
+    public override string ToString()
+    {
+        return JsonSerializer.Serialize(this, Settings.SerializerOptions);
+    }
+}
+
+public static class Settings
+{
+    public static readonly JsonSerializerOptions SerializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
-
-    public override string ToString()
-    {
-        return JsonSerializer.Serialize(this, serializerOptions);
-    }
 }

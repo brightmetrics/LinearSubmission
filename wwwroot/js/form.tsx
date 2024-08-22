@@ -13,7 +13,7 @@ type FormFields = {
   user: string
   customersImpacted: string
   stepsToReproduce: Step[]
-  urgency: string
+  urgency: number
   zendeskTicketNumber: string
 }
 
@@ -32,39 +32,41 @@ class Step {
   static nextid = 0
 }
 
+const products = [
+  "Broadvoice",
+  "Genesys",
+  "MiCC",
+  "MiVB",
+  "MiVC",
+  "MiVC-CC (ECC)",
+  "NICE CXOne",
+  "RingCentral",
+  "Scorecards",
+]
+
+const urgencyScale = [
+  "None",
+  "Urgent",
+  "High",
+  "Medium",
+  "Low",
+]
+
+const impactedScale = [
+  "Unknown",
+  "One",
+  "Multiple",
+  "Many",
+  "Most",
+]
+
 export function FormContent() {
-  const products = [
-    "Broadvoice",
-    "Genesys",
-    "MiCC",
-    "MiVB",
-    "MiVC",
-    "MiVC-CC (ECC)",
-    "NICE CXOne",
-    "RingCentral",
-    "Scorecards",
-    "~~Conversation Intelligence~~",
-  ]
-  const urgencyScale = [
-    "None",
-    "Low",
-    "Medium",
-    "High",
-    "Urgent",
-  ]
-  const impactedScale = [
-    "Unknown",
-    "One",
-    "Multiple",
-    "Many",
-    "Most",
-  ]
   let [title, setTitle] = useState("")
   let [description, setDescription] = useState("")
   let [product, setProduct] = useState(products[0])
   let [zendeskTicketNumber, setZendeskTicketNumber] = useState("")
   let [customer, setCustomer] = useState("")
-  let [urgency, setUrgency] = useState(urgencyScale[0])
+  let [urgency, setUrgency] = useState(0)
   let [user, setUser] = useState("")
   let [customersImpacted, setCustomersImpacted] = useState(impactedScale[0])
   let [stepsToReproduce, setStepsToReproduce] = useState<Step[]>([new Step()])
@@ -104,7 +106,7 @@ export function FormContent() {
         </fieldset>
 
         <fieldset>
-          <label htmlFor="product">Product*</label>
+          <label htmlFor="product">Product</label>
           <select id="product"
                   name="product"
                   className="focusable field"
@@ -148,7 +150,7 @@ export function FormContent() {
           />
         </fieldset>
 
-        <fieldset>
+        <fieldset style={{ display: "none" }}>
           <label htmlFor="user">User</label>
           <input id="user"
                  type="text"
@@ -183,11 +185,11 @@ export function FormContent() {
                   name="urgency"
                   className="field"
                   value={urgency}
-                  onChange={e => setUrgency(e.target.value)}
+                  onChange={e => setUrgency(parseInt(e.target.value, 10))}
           >
             {
               urgencyScale.map((name, i) =>
-                <option key={i} value={name}>{name}</option>
+                <option key={i} value={i}>{name}</option>
               )
             }
           </select>
@@ -309,11 +311,13 @@ function StepToReproduce({
   addStep,
   updateStep,
 }: StepToReproduceProps) {
+  const isFirstStep = stepsToReproduce.indexOf(step) === 0;
   return <li>
     <div className="step">
       <textarea onChange={onChange}
                 name="stepsToReproduce"
                 onKeyDown={onKeyDown}
+                placeholder={isFirstStep ? "e.g. See http://bmetrics.co/tab/NnK5BnaQ" : ""}
                 className="mr-5 field"
                 autoComplete="off"
                 value={step.value}
@@ -351,30 +355,26 @@ function createMarkdown({
   product,
   stepsToReproduce,
   title,
-  urgency,
   user,
   zendeskTicketNumber,
 }: FormFields): string {
   const steps = stepsToReproduce.map(s => s.value)
-  return [
-    createHeader(1, title),
+  const sections = [
     createParagraph(description),
-    createNewline(),
     ...createTable(
-      ["Product", "Customer", "Impacted", "Urgency"],
-      [product ?? "N/A", customer ?? "N/A", customersImpacted, urgency]),
-    // createNewline(),
-    createHeader(3, "Steps to Reproduce"),
-    ...createOrderedList(steps ?? []),
-  ].join("\n")
+      ["Product", "Customer", "Impacted"],
+      [product ?? "N/A", customer ?? "N/A", customersImpacted]),
+  ]
+  if (steps.some(s => s.trim().length > 0)) {
+    sections.push(
+      createHeader(3, "Notes"),
+      ...createOrderedList(steps ?? []))
+  }
+  return sections.join("\n")
 }
 
 function createHeader(level: number, text: string): string {
   return `${"#".repeat(level)} ${text}`
-}
-
-function createNewline(count: number = 1) {
-  return "\n&nbsp;".repeat(count)
 }
 
 function createParagraph(text: string): string {
