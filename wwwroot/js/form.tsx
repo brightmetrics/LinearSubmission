@@ -17,7 +17,7 @@ type FormFields = {
   zendeskTicketNumber: string
 }
 
-if (PAGE === "bug-form") {
+if (typeof PAGE === "string" && PAGE === "bug-form") {
   const root = createRoot(document.forms[0]);
   root.render(createContent());
 }
@@ -34,19 +34,23 @@ class Step {
 
 export function FormContent() {
   const products = [
-    "N/A",
-    "Product 1",
-    "Product 2",
-    "Product 3",
-    "Product 4",
-    "Product 5",
+    "Broadvoice",
+    "Genesys",
+    "MiCC",
+    "MiVB",
+    "MiVC",
+    "MiVC-CC (ECC)",
+    "NICE CXOne",
+    "RingCentral",
+    "Scorecards",
+    "~~Conversation Intelligence~~",
   ]
   const urgencyScale = [
-    "Urgency 1",
-    "Urgency 2",
-    "Urgency 3",
-    "Urgency 4",
-    "Urgency 5",
+    "None",
+    "Low",
+    "Medium",
+    "High",
+    "Urgent",
   ]
   const impactedScale = [
     "Unknown",
@@ -76,7 +80,7 @@ export function FormContent() {
           <input id="title"
                  type="text"
                  name="title"
-                 className="focusable field-1"
+                 className="focusable field"
                  value={title}
                  autoComplete="off"
                  required={true}
@@ -89,7 +93,7 @@ export function FormContent() {
           <label htmlFor="desc">Description*</label>
           <textarea id="desc"
                     name="description"
-                    className="focusable field-1"
+                    className="focusable field"
                     placeholder="What sort of expectation isn't being met?"
                     rows={10}
                     value={description}
@@ -103,7 +107,7 @@ export function FormContent() {
           <label htmlFor="product">Product*</label>
           <select id="product"
                   name="product"
-                  className="focusable field-1"
+                  className="focusable field"
                   onChange={e => setProduct(e.target.value)}>
             {
               products.map((productName, i) => {
@@ -124,7 +128,7 @@ export function FormContent() {
                  max="999999"
                  name="zendeskTicketNumber"
                  placeholder="If applicable"
-                 className="focusable field-1"
+                 className="focusable field"
                  autoComplete="off"
                  value={zendeskTicketNumber}
                  onChange={e => setZendeskTicketNumber(e.target.value)}
@@ -137,7 +141,7 @@ export function FormContent() {
                  type="text"
                  name="customer"
                  placeholder="If applicable"
-                 className="focusable field-1"
+                 className="focusable field"
                  autoComplete="off"
                  value={customer}
                  onChange={e => setCustomer(e.target.value)}
@@ -150,7 +154,7 @@ export function FormContent() {
                  type="text"
                  name="user"
                  placeholder="If applicable"
-                 className="focusable field-1"
+                 className="focusable field"
                  autoComplete="off"
                  value={user}
                  onChange={e => setUser(e.target.value)}
@@ -161,7 +165,7 @@ export function FormContent() {
           <label htmlFor="customersImpacted">Number of Impacted</label>
           <select id="customersImpacted"
                   name="customersImpacted"
-                  className="field-1"
+                  className="field"
                   value={customersImpacted}
                   onChange={e => setCustomersImpacted(e.target.value)}
           >
@@ -177,7 +181,7 @@ export function FormContent() {
           <label htmlFor="urgency">Urgency</label>
           <select id="urgency"
                   name="urgency"
-                  className="field-1"
+                  className="field"
                   value={urgency}
                   onChange={e => setUrgency(e.target.value)}
           >
@@ -191,7 +195,7 @@ export function FormContent() {
 
         <fieldset>
           <div>
-            <label className="mr-5">Steps to reproduce and/or links(<code>Enter</code> to add step)</label>
+            <label className="mr-5">Steps to reproduce, links, or free form items (<kbd>Enter</kbd> to add item)</label>
             <ol>
               {
                 stepsToReproduce.map((step, i, { length: len }) => {
@@ -257,7 +261,14 @@ export function FormContent() {
   }
 
   function createHiddenMarkdownFormField(): HTMLInputElement {
+    const id = "markdown-field";
+    const existing = document.getElementById(id);
+    // Should never happen but idk
+    if (existing) {
+      existing.remove?.();
+    }
     const mdElement = document.createElement("INPUT") as HTMLInputElement;
+    mdElement.id = id;
     mdElement.setAttribute("type", "hidden");
     mdElement.setAttribute("name", "markdown");
     mdElement.value = createMarkdown({
@@ -303,7 +314,7 @@ function StepToReproduce({
       <textarea onChange={onChange}
                 name="stepsToReproduce"
                 onKeyDown={onKeyDown}
-                className="mr-5 field-1"
+                className="mr-5 field"
                 autoComplete="off"
                 value={step.value}
                 rows={1}

@@ -74,22 +74,24 @@ label {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
+  padding: 15px;
+  margin: 0 auto;
+  width: 500px;
 }
 .pane {
   flex-grow: 0;
   flex-shrink: 0;
   width: 500px;
-  margin: 15px;
 }
-.field-1 {
+.field {
   flex-grow: 1;
   padding: .25rem;
-}
-.mr-5 {
-  margin-right: 5px;
 }
 .step {
   display: flex;
   flex-direction: row;
   margin: 5px 0;
+}
+.mr-5 {
+  margin-right: 5px;
 }
