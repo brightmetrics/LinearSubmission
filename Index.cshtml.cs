@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using LinearSubmission.GraphQL;
 
-namespace LinearSubmission.Pages;
+namespace LinearSubmission;
 
 [Authorize]
 [IgnoreAntiforgeryToken]

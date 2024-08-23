@@ -30,10 +30,10 @@ internal static class Program
     {
         var configuration = GetConfiguration(builder);
 
-        // var str = string.Join("\n", configuration.GetChildren().Select(x => x.Key));
-        // throw new Exception(str);
-
-        builder.Services.AddRazorPages();
+        builder.Services.AddRazorPages(o =>
+        {
+            o.RootDirectory = "/";
+        });
 
         builder.Services
             .AddAuthentication(options =>
@@ -44,9 +44,7 @@ internal static class Program
             .AddCookie()
             .AddOAuth<OAuthOptions, LinearHandler>(LinearHandler.SchemeName, options =>
             {
-                // options.AuthorizationEndpoint = "https://oauth.wiremockapi.cloud/oauth/authorize";
                 options.AuthorizationEndpoint = "https://linear.app/oauth/authorize";
-                // options.TokenEndpoint = "https://oauth.wiremockapi.cloud/oauth/token";
                 options.TokenEndpoint = "https://api.linear.app/oauth/token";
                 // this is a fake endpoint that the OAuthHandler creates in
                 // order to complete the OAuth2 flow
@@ -70,7 +68,6 @@ internal static class Program
     {
         if (!app.Environment.IsDevelopment())
         {
-            app.UseExceptionHandler("/Error");
             // The default HSTS value is 30 days. You may want to change this
             // for production scenarios, see https://aka.ms/aspnetcore-hsts.
             app.UseHsts();

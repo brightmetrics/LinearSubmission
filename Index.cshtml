@@ -1,0 +1,26 @@
+﻿@page
+@namespace LinearSubmission
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@model IndexModel
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Linear Submission</title>
+    <link rel="stylesheet" href="/css/site.css" asp-append-version="true" />
+  </head>
+  <body>
+    <main role="main">
+      @if (@Model.IsPostBack) {
+        <h3>Submission successful</h3>
+        <p class="mt-5">Go to issue <a href="@(@Model.NewIssueUrl)">here</a></p>
+        <p class="mt-5">Create another issue <a href="/">here</a></p>
+      } else {
+        <form method="POST" onsubmit="event.preventDefault();return false"></form>
+        <script src="/js/site.js" asp-append-version="true"></script>
+      }
+    </main>
+  </body>
+</html>
