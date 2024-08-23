@@ -35,7 +35,6 @@ public class IndexModel : PageModel
     private readonly ILogger<IndexModel> logger;
     private readonly HttpClient client = new();
     private readonly string linearTeam;
-    private readonly IConfigurationSection linearLabels;
     private readonly string graphqlEndpoint;
     private readonly string ticketsEndpoint;
 
@@ -45,9 +44,6 @@ public class IndexModel : PageModel
 
         linearTeam = configuration["LinearTeam"] ??
             throw new InvalidOperationException("No LinearTeam found in configuration");
-
-        linearLabels = configuration.GetSection("LinearLabels") ??
-            throw new InvalidOperationException("No LinearLabels found in configuration");
 
         ticketsEndpoint = configuration["ZendeskTicketsEndpoint"] ??
             throw new InvalidOperationException("No ZendeskTicketsEndpoint found in configuration");
@@ -85,7 +81,8 @@ public class IndexModel : PageModel
             stepsToReproduce,
             markdown);
 
-        var createResponse = await PostToLinearApi(BuildMutationIssueCreatePayload(form));
+        var payload = await BuildMutationIssueCreatePayload(form);
+        var createResponse = await PostToLinearApi(payload);
 
         var o = (createResponse["data"]?["issueCreate"]?["issue"]?["id"]) ??
             throw new InvalidOperationException("No issue ID found from newly created issue");
@@ -104,6 +101,18 @@ public class IndexModel : PageModel
         return Page();
     }
 
+    private StringContent BuildQueryLabelsPayload()
+    {
+        var query = new LabelsQuery()
+        {
+            Variables = new()
+            {
+                TeamId = linearTeam,
+            },
+        };
+        return new StringContent(query.ToString(), Encoding.UTF8, "application/json");
+    }
+
     private StringContent BuildQueryIssuePayload(string guid)
     {
         var query = new IssueQuery()
@@ -111,7 +120,7 @@ public class IndexModel : PageModel
             Variables = new()
             {
                 Id = guid,
-            }
+            },
         };
         return new StringContent(query.ToString(), Encoding.UTF8, "application/json");
     }
@@ -131,13 +140,18 @@ public class IndexModel : PageModel
         return new StringContent(mutation.ToString(), Encoding.UTF8, "application/json");
     }
 
-    private StringContent BuildMutationIssueCreatePayload(FormData form)
+    private async Task<StringContent> BuildMutationIssueCreatePayload(FormData form)
     {
-        List<string> labels = [linearLabels["Bug"]!];
+        var labels = await FetchLabels();
+        var sendLabels = new List<string>();
 
-        var productLabel = linearLabels[form.Product];
-        if (!string.IsNullOrEmpty(productLabel))
-            labels.Add(productLabel);
+        var bugLabel = labels.Find(x => x.Name == "Bug");
+        if (!string.IsNullOrEmpty(bugLabel?.Id))
+            sendLabels.Add(bugLabel.Id);
+
+        var productLabel = labels.Find(x => x.Name == form.Product);
+        if (!string.IsNullOrEmpty(productLabel?.Id))
+            sendLabels.Add(productLabel.Id);
 
         var mutation = new IssueCreateMutation()
         {
@@ -148,7 +162,7 @@ public class IndexModel : PageModel
                     Title = form.Title?.Trim() ?? "",
                     Description = form.Markdown.Replace("\r", "").Trim(),
                     TeamId = linearTeam,
-                    LabelIds = labels.ToArray(),
+                    LabelIds = sendLabels.ToArray(),
                     Priority = form.Urgency,
                 },
             },
@@ -165,6 +179,26 @@ public class IndexModel : PageModel
             throw new InvalidOperationException($"Failed to get {nameof(ClaimTypes.Name)}");
 
         return new AuthenticationHeaderValue("Bearer", claim.Value);
+    }
+
+    private async Task<List<LinearLabel>> FetchLabels()
+    {
+        var getResponse = await PostToLinearApi(BuildQueryLabelsPayload());
+        var array = getResponse["data"]?["team"]?["organization"]?["labels"]?["nodes"]?.AsArray();
+        if (array?.Any() != true)
+            return [];
+
+        logger.LogInformation("here");
+        var list = new List<LinearLabel>();
+        foreach (var node in array)
+        {
+            list.Add(new LinearLabel()
+            {
+                Id = (string?)node!["id"],
+                Name = (string?)node!["name"],
+            });
+        }
+        return list;
     }
 
     private async Task<JsonObject> PostToLinearApi(StringContent payload)

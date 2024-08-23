@@ -11,6 +11,29 @@ public class LinearLabel
     public string? Id { get; set; }
 }
 
+public class LabelsArguments
+{
+    public string? TeamId { get; set; }
+}
+
+public class LabelsQuery : MutationOrQuery<LabelsArguments>
+{
+    protected override string GetQueryString() => Flatten(@"
+query Labels($teamId: String!) {
+  team(id: $teamId) {
+    organization {
+      labels {
+        nodes {
+          id, name
+        }
+      }
+    }
+  }
+}
+");
+    protected override string GetOperationName() => "Labels";
+}
+
 public class IssueArguments
 {
     public string? Id { get; set; }
