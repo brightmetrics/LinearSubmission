@@ -2,8 +2,6 @@ import { marked } from "marked";
 import { createRoot } from "react-dom/client";
 import { ReactElement, useState } from "react";
 
-declare const PAGE: string
-
 type Action<T> = ((x: T) => void)
 type FormFields = {
   title: string
@@ -17,10 +15,8 @@ type FormFields = {
   zendeskTicketNumber: string
 }
 
-if (typeof PAGE === "string" && PAGE === "bug-form") {
-  const root = createRoot(document.forms[0]);
-  root.render(createContent());
-}
+const root = createRoot(document.forms[0]);
+root.render(createContent());
 
 function createContent(): ReactElement {
   return <FormContent />
