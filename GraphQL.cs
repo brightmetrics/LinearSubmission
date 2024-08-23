@@ -25,7 +25,8 @@ query Issue($id: String!) {
     identifier,
     url
   }
-}");
+}
+");
     protected override string GetOperationName() => "Issue";
 }
 
@@ -54,7 +55,8 @@ mutation IssueCreate($input: IssueCreateInput!) {
       title
     }
   }
-}");
+}
+");
     protected override string GetOperationName() => "IssueCreate";
 }
 
@@ -73,7 +75,8 @@ mutation AttachmentLinkURL($url: String!, $issueId: String!) {
       url
     }
   }
-}");
+}
+");
     protected override string GetOperationName() => "AttachmentLinkURL";
 }
 

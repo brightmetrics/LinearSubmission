@@ -32,6 +32,7 @@ internal static class Program
 
         builder.Services.AddRazorPages(o =>
         {
+            // Instead of the normal convention of /Pages/*
             o.RootDirectory = "/";
         });
 
