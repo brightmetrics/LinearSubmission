@@ -85,22 +85,26 @@ mutation IssueCreate($input: IssueCreateInput!) {
 
 public class AttachmentLinkUrlArguments
 {
+    public AttachmentCreateInput? Input { get; set; }
+}
+
+public class AttachmentCreateInput
+{
     public string? Url { get; set; }
+    public string? Title { get; set; }
     public string? IssueId { get; set; }
 }
 
-public class AttachmentLinkUrlMutation : MutationOrQuery<AttachmentLinkUrlArguments>
+public class IssueAttachmentMutation : MutationOrQuery<AttachmentLinkUrlArguments>
 {
     protected override string GetQueryString() => Flatten(@"
-mutation AttachmentLinkURL($url: String!, $issueId: String!) {
-  attachmentLinkURL(url: $url, issueId: $issueId) {
-    attachment {
-      url
-    }
+mutation IssueAttachmentMutation($input: AttachmentCreateInput!) {
+  attachmentCreate(input: $input) {
+    success
   }
 }
 ");
-    protected override string GetOperationName() => "AttachmentLinkURL";
+    protected override string GetOperationName() => "IssueAttachmentMutation";
 }
 
 public abstract class MutationOrQuery<T>

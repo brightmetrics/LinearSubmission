@@ -89,7 +89,7 @@ public class IndexModel : PageModel
 
         if (!string.IsNullOrEmpty(form.ZendeskTicketNumber))
         {
-            await PostToLinearApi(BuildMutationAttachmentLinkUrlPayload(form, newIssueId));
+            await PostToLinearApi(BuildIssueAttachmentMutationPayload(form, newIssueId));
         }
 
         var getResponse = await PostToLinearApi(BuildQueryIssuePayload(newIssueId));
@@ -124,16 +124,20 @@ public class IndexModel : PageModel
         return new StringContent(query.ToString(), Encoding.UTF8, "application/json");
     }
 
-    private StringContent BuildMutationAttachmentLinkUrlPayload(
+    private StringContent BuildIssueAttachmentMutationPayload(
         FormData form,
         string issueId)
     {
-        var mutation = new AttachmentLinkUrlMutation()
+        var mutation = new IssueAttachmentMutation()
         {
             Variables = new()
             {
-                IssueId = issueId,
-                Url = ticketsEndpoint + form.ZendeskTicketNumber!,
+                Input = new()
+                {
+                    Url = ticketsEndpoint + form.ZendeskTicketNumber,
+                    Title = "Ticket #" + form.ZendeskTicketNumber,
+                    IssueId = issueId,
+                },
             },
         };
         return new StringContent(mutation.ToString(), Encoding.UTF8, "application/json");
