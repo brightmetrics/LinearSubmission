@@ -171,7 +171,7 @@ public class IndexModel : PageModel
 
     private AuthenticationHeaderValue CreateAuthHeader()
     {
-        var identity = (HttpContext.User.Identity as ClaimsIdentity) ??
+        var identity = (this.HttpContext.User.Identity as ClaimsIdentity) ??
             throw new InvalidOperationException($"Failed to get {nameof(ClaimsIdentity)}");
 
         var claim = identity.FindFirst(ClaimTypes.Name) ??

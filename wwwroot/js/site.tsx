@@ -61,7 +61,7 @@ export function FormContent() {
   let [title, setTitle] = useState("")
   let [description, setDescription] = useState("")
   let [product, setProduct] = useState(products[0])
-  let [zendeskTicketNumber, setZendeskTicketNumber] = useState("")
+  let [zendeskTicketNumber, setZendeskTicketNumber] = useState(getZendeskParameter())
   let [customer, setCustomer] = useState("")
   let [urgency, setUrgency] = useState(0)
   let [user, setUser] = useState("")
@@ -342,9 +342,7 @@ function StepToReproduce({
     updateStep(step)
   }
 }
-//
-// Markdown helpers
-//
+
 function createMarkdown({
   customer,
   customersImpacted,
@@ -391,4 +389,19 @@ function createTable(headers: string[], cells: string[]): string[] {
 
 function createOrderedList(items: string[]): string[] {
   return items.filter(i => i.trim()).map(i => "1. " + i)
+}
+
+function getZendeskParameter(): string {
+  let value = ""
+  try {
+    const params = new URLSearchParams(location.search)
+    value = params.get("zd") ?? ""
+  } catch (e) { /* ignore */ }
+  if (value) {
+    const parsed = parseInt(value, 10)
+    if (!isNaN(parsed) && isFinite(parsed)) {
+      return `${parsed}`
+    }
+  }
+  return ""
 }
