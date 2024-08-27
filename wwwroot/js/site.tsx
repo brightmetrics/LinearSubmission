@@ -30,12 +30,13 @@ class Step {
 
 const products = [
   "Broadvoice",
+  "CXOne",
+  "Enterprise",
   "Genesys",
   "MiCC",
   "MiVB",
   "MiVC",
-  "MiVC-CC (ECC)",
-  "NICE CXOne",
+  "ECC",
   "RingCentral",
   "Scorecards",
 ]

@@ -47,7 +47,6 @@ public class IndexModel : PageModel
 
         ticketsEndpoint = configuration["ZendeskTicketsEndpoint"] ??
             throw new InvalidOperationException("No ZendeskTicketsEndpoint found in configuration");
-        ticketsEndpoint = "https://example.com?ticket="; // TODO
 
         graphqlEndpoint = configuration["GraphQLEndpoint"] ??
             throw new InvalidOperationException("No GraphQLEndpoint found in configuration");
@@ -142,16 +141,16 @@ public class IndexModel : PageModel
 
     private async Task<StringContent> BuildMutationIssueCreatePayload(FormData form)
     {
-        var labels = await FetchLabels();
-        var sendLabels = new List<string>();
+        var labels = await QueryTeamLabels();
+        var labelsToAttach = new List<string>(); // IDs
 
-        var bugLabel = labels.Find(x => x.Name == "Bug");
+        var bugLabel = labels.Find(x => x.Name?.StartsWith("Bug") == true);
         if (!string.IsNullOrEmpty(bugLabel?.Id))
-            sendLabels.Add(bugLabel.Id);
+            labelsToAttach.Add(bugLabel.Id);
 
         var productLabel = labels.Find(x => x.Name == form.Product);
         if (!string.IsNullOrEmpty(productLabel?.Id))
-            sendLabels.Add(productLabel.Id);
+            labelsToAttach.Add(productLabel.Id);
 
         var mutation = new IssueCreateMutation()
         {
@@ -162,7 +161,7 @@ public class IndexModel : PageModel
                     Title = form.Title?.Trim() ?? "",
                     Description = form.Markdown.Replace("\r", "").Trim(),
                     TeamId = linearTeam,
-                    LabelIds = sendLabels.ToArray(),
+                    LabelIds = labelsToAttach.ToArray(),
                     Priority = form.Urgency,
                 },
             },
@@ -181,14 +180,13 @@ public class IndexModel : PageModel
         return new AuthenticationHeaderValue("Bearer", claim.Value);
     }
 
-    private async Task<List<LinearLabel>> FetchLabels()
+    private async Task<List<LinearLabel>> QueryTeamLabels()
     {
         var getResponse = await PostToLinearApi(BuildQueryLabelsPayload());
         var array = getResponse["data"]?["team"]?["organization"]?["labels"]?["nodes"]?.AsArray();
         if (array?.Any() != true)
             return [];
 
-        logger.LogInformation("here");
         var list = new List<LinearLabel>();
         foreach (var node in array)
         {
