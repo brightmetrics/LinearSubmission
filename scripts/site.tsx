@@ -72,7 +72,7 @@ export function FormContent() {
   return (
     <div className="wrapper">
       <div className="editor pane">
-        <h1>Linear Bug Template</h1>
+        <h1 style={{ textAlign: "center" }}>Bug Form</h1>
 
         <fieldset>
           <label htmlFor="title">Title*</label>
@@ -215,7 +215,10 @@ export function FormContent() {
         </fieldset>
 
         <fieldset>
-          <input type="submit" value="Submit" onClick={submitClick} />
+          <input className="submit button"
+                 type="submit"
+                 value="Submit To Linear"
+                 onClick={submitClick} />
         </fieldset>
       </div>
     </div>
@@ -322,6 +325,7 @@ function StepToReproduce({
                 ref={el => step === newStep && (setNewStep(null), el?.focus())}
       ></textarea>
       <button type="button"
+              className="button"
               onClick={_ => removeStep?.(step)}
               disabled={!removeStep}>
         Remove
