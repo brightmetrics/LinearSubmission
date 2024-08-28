@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "check": "tsc -p .",
-    "build": "esbuild site.tsx --bundle --outfile=site.js"
+    "build": "esbuild site.tsx --bundle --outfile=../wwwroot/js/site.js"
   },
   "author": "",
   "license": "ISC",

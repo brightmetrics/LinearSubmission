@@ -358,7 +358,7 @@ function createMarkdown({
     createParagraph(description),
     ...createTable(
       ["Product", "Customer", "Impacted"],
-      [product ?? "N/A", customer ?? "N/A", customersImpacted]),
+      [product || "N/A", customer || "N/A", customersImpacted]),
   ]
   if (steps.some(s => s.trim().length > 0)) {
     sections.push(

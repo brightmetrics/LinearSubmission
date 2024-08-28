@@ -27,10 +27,10 @@ jobs:
           node-version: 18
 
       - name: Install Node dependencies
-        run: npm --prefix ./wwwroot/js ci
+        run: npm --prefix ./scripts ci
 
       - name: Build JavaScript assets
-        run: npm --prefix ./wwwroot/js run build
+        run: npm --prefix ./scripts run build
 
       - name: Build with dotnet
         run: dotnet build --configuration Release
