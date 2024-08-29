@@ -9,7 +9,14 @@ namespace LinearSubmission;
 
 internal static class Program
 {
-    static IConfigurationRoot GetConfiguration(WebApplicationBuilder builder)
+    public static string EnvPrefix(IConfiguration configuration)
+    {
+        var prefix = configuration["AppEnv"]; // AppEnv=Sandbox
+        if (prefix != null) prefix += "_";
+        return prefix ?? "";
+    }
+
+    private static IConfigurationRoot GetConfiguration(WebApplicationBuilder builder, string[] commandLineArgs)
     {
         var configBuilder = new ConfigurationBuilder();
         try
@@ -17,6 +24,7 @@ internal static class Program
             var assemblyName = new AssemblyName(builder.Environment.ApplicationName);
             var appAssembly = Assembly.Load(assemblyName);
             configBuilder.AddUserSecrets(appAssembly, optional: true);
+            configBuilder.AddCommandLine(commandLineArgs);
             configBuilder.AddEnvironmentVariables();
         }
         catch (FileNotFoundException)
@@ -26,9 +34,9 @@ internal static class Program
         return configBuilder.Build();
     }
 
-    static void AddServices(WebApplicationBuilder builder)
+    private static void AddServices(WebApplicationBuilder builder, string[] commandLineArgs)
     {
-        var configuration = GetConfiguration(builder);
+        var configuration = GetConfiguration(builder, commandLineArgs);
 
         builder.Services.AddRazorPages(o =>
         {
@@ -50,14 +58,18 @@ internal static class Program
                 // this is a fake endpoint that the OAuthHandler creates in
                 // order to complete the OAuth2 flow
                 options.CallbackPath = "/signin-linear";
-                options.ClientId = configuration["CLIENT_ID"]!;
-                options.ClientSecret = configuration["CLIENT_SECRET"]!;
+                var prefix = EnvPrefix(configuration);
+                options.ClientId = configuration[prefix + "CLIENT_ID"]!;
+                options.ClientSecret = configuration[prefix + "CLIENT_SECRET"]!;
                 options.Scope.Add("issues:create");
                 options.Scope.Add("write");
                 options.Events = new OAuthEvents()
                 {
                     OnRedirectToAuthorizationEndpoint = ctx =>
                     {
+                        // "prompt=consent" forces the user to see the Linear
+                        // OAuth page, which allows them to choose a different
+                        // workspace (which can be useful)
                         ctx.HttpContext.Response.Redirect(ctx.RedirectUri + "&prompt=consent");
                         return Task.FromResult(0);
                     },
@@ -65,7 +77,7 @@ internal static class Program
             });
     }
 
-    static void UseServices(WebApplication app)
+    private static void UseServices(WebApplication app)
     {
         if (!app.Environment.IsDevelopment())
         {
@@ -80,11 +92,15 @@ internal static class Program
         app.UseAuthorization();
     }
 
-    static void Main(string[] args)
+    private static void Main(string[] args)
     {
+        var appEnv = args.FirstOrDefault(a => a.StartsWith("AppEnv"));
+        if (appEnv != null)
+            Console.WriteLine("\n\nRunning in environment: {0}\n\n", appEnv.Split("=")[1]);
+
         var builder = WebApplication.CreateBuilder(args);
 
-        AddServices(builder);
+        AddServices(builder, args);
 
         var app = builder.Build();
 

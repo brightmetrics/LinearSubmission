@@ -42,7 +42,7 @@ public class IndexModel : PageModel
     {
         this.logger = logger;
 
-        linearTeam = configuration["LinearTeam"] ??
+        linearTeam = configuration[Program.EnvPrefix(configuration) + "LinearTeam"] ??
             throw new InvalidOperationException("No LinearTeam found in configuration");
 
         ticketsEndpoint = configuration["ZendeskTicketsEndpoint"] ??
