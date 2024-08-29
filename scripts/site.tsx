@@ -192,7 +192,6 @@ export function FormContent() {
                     title="Markdown supported"
                     rows={10}
                     value={notes}
-                    required={true}
                     onBlur={markTouched}
                     onChange={e => setNotes(e.target.value)}
           ></textarea>
