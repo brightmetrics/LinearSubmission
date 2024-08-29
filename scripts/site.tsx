@@ -259,14 +259,20 @@ function createMarkdown({
   notes,
   product,
 }: FormFields): string {
-  return [
+  const sections = [
     createParagraph(description),
     ...createTable(
       ["Product", "Customer", "Impacted"],
       [product || "N/A", customer || "N/A", customersImpacted]),
-    createHeader(3, "Notes"),
-    createParagraph(notes),
-  ].join("\n")
+  ]
+
+  if (notes) {
+    sections.push(
+      createHeader(3, "Notes"),
+      createParagraph(notes))
+  }
+
+  return sections.join("\n")
 
   function createHeader(level: number, text: string): string {
     return `${"#".repeat(level)} ${text}`
