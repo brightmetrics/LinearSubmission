@@ -1,30 +1,16 @@
 import { createRoot } from "react-dom/client";
 import { ReactElement, useState } from "react";
 
-type Action<T> = ((x: T) => void)
 type FormFields = {
   title: string
   description: string
   product: string
   customer: string
-  user: string
+  user: string // Currently not used
   customersImpacted: string
-  stepsToReproduce: Step[]
+  notes: string
   urgency: number
   zendeskTicketNumber: string
-}
-
-const root = createRoot(document.forms[0]);
-root.render(createContent());
-
-function createContent(): ReactElement {
-  return <FormContent />
-}
-
-let _nextId = 0;
-class Step {
-  public id = ++_nextId
-  constructor(public value: string = "") { }
 }
 
 const products = [
@@ -56,6 +42,13 @@ const impactedScale = [
   "Most",
 ]
 
+const root = createRoot(document.forms[0]);
+root.render(createContent());
+
+function createContent(): ReactElement {
+  return <FormContent />
+}
+
 export function FormContent() {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -65,9 +58,7 @@ export function FormContent() {
   const [urgency, setUrgency] = useState(0)
   const [user, setUser] = useState("")
   const [customersImpacted, setCustomersImpacted] = useState(impactedScale[0])
-  const [stepsToReproduce, setStepsToReproduce] = useState<Step[]>([new Step()])
-  // Represents a Step that has just been added via the UI
-  const [newStep, setNewStep] = useState<Step | null>(null)
+  const [notes, setNotes] = useState("")
   return (
     <div className="wrapper">
       <div className="editor pane">
@@ -193,25 +184,18 @@ export function FormContent() {
         </fieldset>
 
         <fieldset>
-          <div>
-            <label className="mr-5">Steps to reproduce, links, or free form items (<kbd>Enter</kbd> to add item)</label>
-            <ol>
-              {
-                stepsToReproduce.map((step, i, { length: len }) => {
-                  return <StepToReproduce
-                      key={step.id}
-                      step={step}
-                      stepsToReproduce={stepsToReproduce}
-                      newStep={newStep}
-                      setNewStep={setNewStep}
-                      removeStep={len === 1 ? null : removeStep}
-                      addStep={addStep}
-                      updateStep={updateStep}
-                  />
-                })
-              }
-            </ol>
-          </div>
+          <label htmlFor="desc">Notes and links</label>
+          <textarea id="notes"
+                    name="notes"
+                    className="focusable field"
+                    placeholder="Go to this report http://..."
+                    title="Markdown supported"
+                    rows={10}
+                    value={notes}
+                    required={true}
+                    onBlur={markTouched}
+                    onChange={e => setNotes(e.target.value)}
+          ></textarea>
         </fieldset>
 
         <fieldset>
@@ -223,29 +207,6 @@ export function FormContent() {
       </div>
     </div>
   )
-
-  function addStep(index: number) {
-    const step = new Step()
-    setNewStep(step)
-    if (index >= stepsToReproduce.length) {
-      setStepsToReproduce([...stepsToReproduce, step])
-    } else {
-      stepsToReproduce.splice(index, 0, step)
-      setStepsToReproduce([...stepsToReproduce])
-    }
-  }
-
-  function updateStep(s: Step) {
-    const i = stepsToReproduce.findIndex(_s => _s.id === s.id)
-    stepsToReproduce.splice(i, 1, s)
-    setStepsToReproduce([...stepsToReproduce])
-  }
-
-  function removeStep(s: Step) {
-    const i = stepsToReproduce.findIndex(_s => _s.id === s.id)
-    stepsToReproduce.splice(i, 1);
-    setStepsToReproduce([...stepsToReproduce])
-  }
 
   function submitClick(e: React.PointerEvent<HTMLInputElement>) {
     const submit = e.target as HTMLInputElement
@@ -278,7 +239,7 @@ export function FormContent() {
       customersImpacted,
       description,
       product,
-      stepsToReproduce,
+      notes,
       title,
       urgency,
       user,
@@ -286,111 +247,47 @@ export function FormContent() {
     })
     return mdElement;
   }
-
-  function markTouched(e: React.FocusEvent<HTMLElement>): void {
-    (e.target as HTMLElement)?.classList.add("touched")
-  }
 }
 
-type StepToReproduceProps = {
-  step: Step
-  stepsToReproduce: Step[]
-  newStep: Step|null
-  setNewStep: Action<Step|null>
-  removeStep: Action<Step>|null
-  addStep: Action<number>
-  updateStep: Action<Step>
-}
-
-function StepToReproduce({
-  step,
-  stepsToReproduce,
-  newStep,
-  setNewStep,
-  removeStep,
-  addStep,
-  updateStep,
-}: StepToReproduceProps) {
-  const isFirstStep = stepsToReproduce.indexOf(step) === 0;
-  return <li>
-    <div className="step">
-      <textarea onChange={onChange}
-                name="stepsToReproduce"
-                onKeyDown={onKeyDown}
-                placeholder={isFirstStep ? "e.g. See http://bmetrics.co/tab/NnK5BnaQ" : ""}
-                className="mr-5 field"
-                autoComplete="off"
-                value={step.value}
-                rows={1}
-                ref={el => step === newStep && (setNewStep(null), el?.focus())}
-      ></textarea>
-      <button type="button"
-              className="button"
-              onClick={() => removeStep?.(step)}
-              disabled={!removeStep}>
-        Remove
-      </button>
-    </div>
-  </li>
-
-  function onKeyDown(e: React.KeyboardEvent<HTMLElement>): void {
-    if (e.key?.toLowerCase() === "enter") {
-      const index = stepsToReproduce.indexOf(step)
-      addStep(index + 1)
-      e.preventDefault()
-    }
-  }
-
-  function onChange(e: React.ChangeEvent<HTMLTextAreaElement>): void {
-    step.value = e.target.value
-    updateStep(step)
-  }
+function markTouched(e: React.FocusEvent<HTMLElement>): void {
+  (e.target as HTMLElement)?.classList.add("touched")
 }
 
 function createMarkdown({
   customer,
   customersImpacted,
   description,
+  notes,
   product,
-  stepsToReproduce,
 }: FormFields): string {
-  const steps = stepsToReproduce.map(s => s.value)
-  const sections = [
+  return [
     createParagraph(description),
     ...createTable(
       ["Product", "Customer", "Impacted"],
       [product || "N/A", customer || "N/A", customersImpacted]),
-  ]
-  if (steps.some(s => s.trim().length > 0)) {
-    sections.push(
-      createHeader(3, "Notes"),
-      ...createOrderedList(steps ?? []))
+    createHeader(3, "Notes"),
+    createParagraph(notes),
+  ].join("\n")
+
+  function createHeader(level: number, text: string): string {
+    return `${"#".repeat(level)} ${text}`
   }
-  return sections.join("\n")
-}
 
-function createHeader(level: number, text: string): string {
-  return `${"#".repeat(level)} ${text}`
-}
+  function createParagraph(text: string): string {
+    return text
+  }
 
-function createParagraph(text: string): string {
-  return text
-}
-
-function createTable(headers: string[], cells: string[]): string[] {
-  const headerRow = "| " + headers.map(escapeMdTokens).join(" | ") + " |";
-  const separator = "| " + headers.map(() => "---").join(" | ") + " |"
-  const bodyRow = "| " + cells.map(escapeMdTokens).join(" | ") + " |"
-  return [headerRow, separator, bodyRow]
+  function createTable(headers: string[], cells: string[]): string[] {
+    const headerRow = "| " + headers.map(escapeMdTokens).join(" | ") + " |";
+    const separator = "| " + headers.map(() => "---").join(" | ") + " |"
+    const bodyRow = "| " + cells.map(escapeMdTokens).join(" | ") + " |"
+    return [headerRow, separator, bodyRow]
+  }
 
   function escapeMdTokens(text: string): string {
     // eslint-disable-next-line
     return text.replace("|", "\|")
   }
-}
-
-function createOrderedList(items: string[]): string[] {
-  return items.filter(i => i.trim()).map(i => "1. " + i)
 }
 
 function getZendeskParameter(): string {

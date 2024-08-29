@@ -20,23 +20,13 @@ public class IndexModel : PageModel
     public bool IsPostBack { get; set; }
     public string? NewIssueUrl { get; set; }
 
-    private record FormData(
-        string Title,
-        string Description,
-        string Product,
-        string ZendeskTicketNumber,
-        string Customer,
-        string User,
-        string CustomersImpacted,
-        int Urgency,
-        string[] StepsToReproduce,
-        string Markdown);
-
     private readonly ILogger<IndexModel> logger;
     private readonly HttpClient client = new();
     private readonly string linearTeam;
     private readonly string graphqlEndpoint;
     private readonly string ticketsEndpoint;
+
+    private record FormData(string Title, string Product, string ZendeskTicketNumber, int Urgency, string Markdown);
 
     public IndexModel(ILogger<IndexModel> logger, IConfiguration configuration)
     {
@@ -56,30 +46,14 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPost(
         string title,
-        string description,
         string product,
         string zendeskTicketNumber,
-        string customer,
-        string user,
-        string customersImpacted,
         int urgency,
-        string[] stepsToReproduce,
         string markdown)
     {
         IsPostBack = true;
 
-        var form = new FormData(
-            title,
-            description,
-            product,
-            zendeskTicketNumber,
-            customer,
-            user,
-            customersImpacted,
-            urgency,
-            stepsToReproduce,
-            markdown);
-
+        var form = new FormData(title, product, zendeskTicketNumber, urgency, markdown);
         var payload = await BuildMutationIssueCreatePayload(form);
         var createResponse = await PostToLinearApi(payload);
 
