@@ -57,17 +57,17 @@ const impactedScale = [
 ]
 
 export function FormContent() {
-  let [title, setTitle] = useState("")
-  let [description, setDescription] = useState("")
-  let [product, setProduct] = useState(products[0])
-  let [zendeskTicketNumber, setZendeskTicketNumber] = useState(getZendeskParameter())
-  let [customer, setCustomer] = useState("")
-  let [urgency, setUrgency] = useState(0)
-  let [user, setUser] = useState("")
-  let [customersImpacted, setCustomersImpacted] = useState(impactedScale[0])
-  let [stepsToReproduce, setStepsToReproduce] = useState<Step[]>([new Step()])
+  const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
+  const [product, setProduct] = useState(products[0])
+  const [zendeskTicketNumber, setZendeskTicketNumber] = useState(getZendeskParameter())
+  const [customer, setCustomer] = useState("")
+  const [urgency, setUrgency] = useState(0)
+  const [user, setUser] = useState("")
+  const [customersImpacted, setCustomersImpacted] = useState(impactedScale[0])
+  const [stepsToReproduce, setStepsToReproduce] = useState<Step[]>([new Step()])
   // Represents a Step that has just been added via the UI
-  let [newStep, setNewStep] = useState<Step | null>(null)
+  const [newStep, setNewStep] = useState<Step | null>(null)
   return (
     <div className="wrapper">
       <div className="editor pane">
@@ -325,7 +325,7 @@ function StepToReproduce({
       ></textarea>
       <button type="button"
               className="button"
-              onClick={_ => removeStep?.(step)}
+              onClick={() => removeStep?.(step)}
               disabled={!removeStep}>
         Remove
       </button>
@@ -352,9 +352,6 @@ function createMarkdown({
   description,
   product,
   stepsToReproduce,
-  title,
-  user,
-  zendeskTicketNumber,
 }: FormFields): string {
   const steps = stepsToReproduce.map(s => s.value)
   const sections = [
@@ -381,11 +378,12 @@ function createParagraph(text: string): string {
 
 function createTable(headers: string[], cells: string[]): string[] {
   const headerRow = "| " + headers.map(escapeMdTokens).join(" | ") + " |";
-  const separator = "| " + headers.map(_ => "---").join(" | ") + " |"
+  const separator = "| " + headers.map(() => "---").join(" | ") + " |"
   const bodyRow = "| " + cells.map(escapeMdTokens).join(" | ") + " |"
   return [headerRow, separator, bodyRow]
 
   function escapeMdTokens(text: string): string {
+    // eslint-disable-next-line
     return text.replace("|", "\|")
   }
 }
@@ -399,7 +397,7 @@ function getZendeskParameter(): string {
   try {
     const params = new URLSearchParams(location.search)
     value = params.get("zd") ?? ""
-  } catch (e) { /* ignore */ }
+  } catch { /* ignore */ }
   if (value) {
     const parsed = parseInt(value, 10)
     if (!isNaN(parsed) && isFinite(parsed)) {
