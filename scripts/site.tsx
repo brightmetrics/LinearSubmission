@@ -93,6 +93,7 @@ export function FormContent() {
                     name="description"
                     className="focusable field"
                     placeholder="What sort of expectation isn't being met?"
+                    title="Markdown supported"
                     rows={10}
                     value={description}
                     required={true}
