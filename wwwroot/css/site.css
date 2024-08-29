@@ -48,6 +48,14 @@ table {
 /**********************************************************************/
 /************************ end of reset.css ****************************/
 /**********************************************************************/
+:root {
+  --light-bg: #161f33;
+  --dark-bg: rgb(15, 23, 42);
+  --button-bg: rgb(14, 165, 233);
+  --button-disabled-bg: rgb(71, 85, 105);
+  --text-color: rgb(148, 163, 184);
+  --error-color: red;
+}
 @font-face {
   font-family: Inter var;
   font-weight: 100 900;
@@ -57,8 +65,8 @@ table {
   src: url(/fonts/Inter/Inter-VariableFont_opsz,wght.ttf) format("truetype")
 }
 body {
-  background-color: rgb(15, 23, 42);
-  color: rgb(148, 163, 184);
+  background-color: var(--dark-bg);
+  color: var(--text-color);
   color-scheme: dark;
   font-family: "Inter var", system-ui, sans-serif;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
@@ -93,28 +101,30 @@ label {
 }
 .button[disabled] {
   color: gray;
-  background-color: rgb(71, 85, 105);
+  background-color: var(--button-disabled-bg);
   cursor: not-allowed;
 }
 .submit {
-  background-color: rgb(14, 165, 233);
+  background-color: var(--button-bg);
 }
 .field {
   flex-grow: 1;
   padding: .5rem;
   color: white;
-  background-color: #33415533;
-  border: 0 solid #e5e7eb;
+  background-color: var(--light-bg);
+  border: 1px solid var(--light-bg);
+  outline: none;
   border-radius: 6px;
 }
 .field::placeholder {
   font-family: ui-sans-serif, system-ui, sans-serif;
 }
-.focusable:focus {
-  border: rgb(14, 165, 233);
+.focusable:focus,
+.focusable:focus-visible {
+  border-color: var(--button-bg);
 }
 .focusable:invalid.touched {
-  border: 1px solid red;
+  border: 1px solid var(--error-color);
 }
 .wrapper {
   display: flex;
