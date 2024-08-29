@@ -72,6 +72,12 @@ fieldset {
   font-family: inherit;
   margin: 10px 0;
 }
+/* TODO check this works on Windows for background color */
+select {
+  appearance: none;
+  -moz-appearance: none;
+  -webkit-appearance: none;
+}
 textarea {
   resize: vertical;
 }
