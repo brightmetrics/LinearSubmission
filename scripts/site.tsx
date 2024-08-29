@@ -1,4 +1,3 @@
-import { marked } from "marked";
 import { createRoot } from "react-dom/client";
 import { ReactElement, useState } from "react";
 
