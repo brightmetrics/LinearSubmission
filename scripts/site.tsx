@@ -21,10 +21,10 @@ function createContent(): ReactElement {
   return <FormContent />
 }
 
+let _nextId = 0;
 class Step {
-  public id = ++Step.nextid
+  public id = ++_nextId
   constructor(public value: string = "") { }
-  static nextid = 0
 }
 
 const products = [
