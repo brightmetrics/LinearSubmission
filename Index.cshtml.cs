@@ -26,7 +26,7 @@ public class IndexModel : PageModel
     private readonly string graphqlEndpoint;
     private readonly string ticketsEndpoint;
 
-    private record FormData(string Title, string Product, string ZendeskTicketNumber, int Urgency, string Markdown);
+    private record FormData(string Title, string Product, string ZendeskTicketNumber, int Urgency, string Markdown, bool Escalation);
 
     public IndexModel(ILogger<IndexModel> logger, IConfiguration configuration)
     {
@@ -42,18 +42,28 @@ public class IndexModel : PageModel
             throw new InvalidOperationException("No GraphQLEndpoint found in configuration");
     }
 
-    public IActionResult OnGet() => Page();
+    public IActionResult OnGet()
+    {
+        return Page();
+    }
 
     public async Task<IActionResult> OnPost(
         string title,
         string product,
         string zendeskTicketNumber,
         int urgency,
-        string markdown)
+        string markdown,
+        string escalation)
     {
         IsPostBack = true;
 
-        var form = new FormData(title, product, zendeskTicketNumber, urgency, markdown);
+        var form = new FormData(
+            title,
+            product,
+            zendeskTicketNumber,
+            urgency,
+            markdown,
+            !string.IsNullOrEmpty(escalation));
         var payload = await BuildMutationIssueCreatePayload(form);
         var createResponse = await PostToLinearApi(payload);
 
@@ -129,6 +139,10 @@ public class IndexModel : PageModel
         var productLabel = labels.Find(x => x.Name == form.Product);
         if (!string.IsNullOrEmpty(productLabel?.Id))
             labelsToAttach.Add(productLabel.Id);
+
+        var escalationLabel = labels.Find(x => x.Name?.StartsWith("Escalation") == true);
+        if (!string.IsNullOrEmpty(escalationLabel?.Id) && form.Escalation)
+            labelsToAttach.Add(escalationLabel.Id);
 
         var mutation = new IssueCreateMutation()
         {

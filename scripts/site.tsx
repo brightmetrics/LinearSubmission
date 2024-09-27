@@ -10,6 +10,7 @@ type FormFields = {
   customersImpacted: string
   notes: string
   urgency: number
+  escalation: boolean
   zendeskTicketNumber: string
 }
 
@@ -60,6 +61,7 @@ export function FormContent() {
   const [user, setUser] = useState("")
   const [customersImpacted, setCustomersImpacted] = useState(impactedScale[0])
   const [notes, setNotes] = useState("")
+  const [escalation, setEscalation] = useState(false)
   return (
     <div className="wrapper">
       <div className="editor pane">
@@ -185,6 +187,19 @@ export function FormContent() {
         </fieldset>
 
         <fieldset>
+          <label htmlFor="escalation">
+            <input id="escalation"
+                   type="checkbox"
+                   name="escalation"
+                   className="field"
+                   checked={escalation}
+                   onChange={e => setEscalation(e.target.checked)}
+            />
+            <span style={{marginLeft:"5px"}}>Is this from an escalation?</span>
+          </label>
+        </fieldset>
+
+        <fieldset>
           <label htmlFor="desc">Notes and links</label>
           <textarea id="notes"
                     name="notes"
@@ -244,6 +259,7 @@ export function FormContent() {
       urgency,
       user,
       zendeskTicketNumber,
+      escalation,
     })
     return mdElement;
   }
