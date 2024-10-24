@@ -39,7 +39,7 @@ const urgencyScale = [
 const impactedScale = [
   "Unknown",
   "One",
-  "Multiple",
+  "A few",
   "Many",
   "Most",
 ]
@@ -54,6 +54,8 @@ function createContent(): ReactElement {
 export function FormContent() {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
+  const [workaround, setWorkaround] = useState(false)
+  const [workaroundDesc, setWorkaroundDesc] = useState("")
   const [product, setProduct] = useState(products[0])
   const [zendeskTicketNumber, setZendeskTicketNumber] = useState(getZendeskParameter())
   const [customer, setCustomer] = useState("")
@@ -94,6 +96,29 @@ export function FormContent() {
                     onBlur={markTouched}
                     onChange={e => setDescription(e.target.value)}
           ></textarea>
+        </fieldset>
+
+        <fieldset>
+          <label htmlFor="workaround">
+            <input id="workaround"
+                   type="checkbox"
+                   className="field"
+                   checked={workaround}
+                   onChange={e => setWorkaround(e.target.checked)}
+            />
+            <span style={{marginLeft:"5px"}}>Is there a workaround?</span>
+          </label>
+          {
+            workaround &&
+              <textarea id="workaroundDesc"
+                        className="focusable field"
+                        placeholder="Explain the workaround here"
+                        title="Markdown supported"
+                        rows={5}
+                        value={workaroundDesc}
+                        onChange={e => setWorkaroundDesc(e.target.value)}
+              ></textarea>
+          }
         </fieldset>
 
         <fieldset>
@@ -249,10 +274,19 @@ export function FormContent() {
     mdElement.id = id;
     mdElement.setAttribute("type", "hidden");
     mdElement.setAttribute("name", "markdown");
+
+    let fullDesc = description;
+    if (workaround) {
+      fullDesc += "\n\nThis issue **does** have a workaround";
+      if (workaroundDesc) {
+        fullDesc += `:\n${workaroundDesc}`;
+      }
+    }
+
     mdElement.value = createMarkdown({
       customer,
       customersImpacted,
-      description,
+      description: fullDesc,
       product,
       notes,
       title,
