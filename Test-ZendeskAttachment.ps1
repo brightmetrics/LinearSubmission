@@ -14,13 +14,13 @@ Mutation.attachmentLinkZendesk(issueId)
 Mutation.attachmentLinkZendesk(id)
 #>
 $payload = @{
-    #query = "mutation IssueAttachmentMutation(`$ticketId: String!, `$issueId: String!) { attachmentCreate(ticketId: `$ticketId, issueId: `$issueId) { success } }";
+    #query = "mutation IssueAttachmentMutation(`$ticketId: String!, `$issueId: String!) { attachmentLinkZendesk(ticketId: `$ticketId, issueId: `$issueId) { success } }";
     query = "mutation IssueAttachmentMutation(`$input: AttachmentCreateInput!) { attachmentCreate(input: `$input) { success } }";
     operationName = "IssueAttachmentMutation";
     variables = @{
         input = @{
             url = "https://brightmetrics.zendesk.com/tickets/$ticketId";
-            #ticketId = "57330";
+            #ticketId = $ticketId;
             title = "Ticket $ticketId";
             #issueId = "1e5a1620-40f7-44b1-9271-da411e97e35f";
             issueId = $issueId;
