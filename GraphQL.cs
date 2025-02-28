@@ -99,7 +99,7 @@ public class IssueAttachmentMutation : MutationOrQuery<AttachmentLinkUrlArgument
 {
     protected override string GetQueryString() => Flatten(@"
 mutation IssueAttachmentMutation($input: AttachmentCreateInput!) {
-  attachmentCreate(input: $input) {
+  attachmentLinkZendesk(input: $input) {
     success
   }
 }
