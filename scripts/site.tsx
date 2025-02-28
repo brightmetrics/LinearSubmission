@@ -17,7 +17,7 @@ type FormFields = {
 const products = [
   "Not platform specific",
   "Broadvoice",
-  "CXOne",
+  "CXone",
   "Enterprise",
   "Genesys",
   "MiCC",
