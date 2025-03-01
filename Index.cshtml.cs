@@ -113,12 +113,8 @@ public class IndexModel : PageModel
         {
             Variables = new()
             {
-                Input = new()
-                {
-                    Url = ticketsEndpoint + form.ZendeskTicketNumber,
-                    Title = "Ticket #" + form.ZendeskTicketNumber,
-                    IssueId = issueId,
-                },
+                IssueId = issueId,
+                TicketId = form.ZendeskTicketNumber,
             },
         };
         return new StringContent(mutation.ToString(), Encoding.UTF8, "application/json");
