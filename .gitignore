@@ -3,3 +3,5 @@ obj
 node_modules
 **/site.js
 run.ps1
+.vs
+LinearSubmission.csproj.user

@@ -1,15 +1,12 @@
-﻿using System.Net.Http;
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
+using System.Security.Claims;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Security;
-using System.Security.Claims;
+using LinearSubmission.GraphQL;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using LinearSubmission.GraphQL;
 
 namespace LinearSubmission;
 
@@ -26,7 +23,7 @@ public class IndexModel : PageModel
     private readonly string graphqlEndpoint;
     private readonly string ticketsEndpoint;
 
-    private record FormData(string Title, string Product, string ZendeskTicketNumber, int Urgency, string Markdown, bool Escalation);
+    private sealed record FormData(string Title, string Product, string ZendeskTicketNumber, int Urgency, string Markdown, bool Escalation);
 
     public IndexModel(ILogger<IndexModel> logger, IConfiguration configuration)
     {
@@ -96,7 +93,7 @@ public class IndexModel : PageModel
         return new StringContent(query.ToString(), Encoding.UTF8, "application/json");
     }
 
-    private StringContent BuildQueryIssuePayload(string guid)
+    private static StringContent BuildQueryIssuePayload(string guid)
     {
         var query = new IssueQuery()
         {
@@ -116,12 +113,8 @@ public class IndexModel : PageModel
         {
             Variables = new()
             {
-                Input = new()
-                {
-                    Url = ticketsEndpoint + form.ZendeskTicketNumber,
-                    Title = "Ticket #" + form.ZendeskTicketNumber,
-                    IssueId = issueId,
-                },
+                IssueId = issueId,
+                TicketId = form.ZendeskTicketNumber,
             },
         };
         return new StringContent(mutation.ToString(), Encoding.UTF8, "application/json");
@@ -153,7 +146,7 @@ public class IndexModel : PageModel
                     Title = form.Title?.Trim() ?? "",
                     Description = form.Markdown.Replace("\r", "").Trim(),
                     TeamId = linearTeam,
-                    LabelIds = labelsToAttach.ToArray(),
+                    LabelIds = [.. labelsToAttach],
                     Priority = form.Urgency,
                 },
             },
@@ -163,7 +156,7 @@ public class IndexModel : PageModel
 
     private AuthenticationHeaderValue CreateAuthHeader()
     {
-        var identity = (this.HttpContext.User.Identity as ClaimsIdentity) ??
+        var identity = (HttpContext.User.Identity as ClaimsIdentity) ??
             throw new InvalidOperationException($"Failed to get {nameof(ClaimsIdentity)}");
 
         var claim = identity.FindFirst(ClaimTypes.Name) ??
@@ -176,7 +169,7 @@ public class IndexModel : PageModel
     {
         var getResponse = await PostToLinearApi(BuildQueryLabelsPayload());
         var array = getResponse["data"]?["team"]?["organization"]?["labels"]?["nodes"]?.AsArray();
-        if (array?.Any() != true)
+        if (array == null || array.Count == 0)
             return [];
 
         var list = new List<LinearLabel>();
@@ -202,7 +195,7 @@ public class IndexModel : PageModel
         var response = await client.SendAsync(request);
         var jsonString = await response.Content.ReadAsStringAsync();
 
-        logger.LogInformation("Response --> {response}", jsonString);
+        logger.LogInformation("Response --> {Response}", jsonString);
 
         return JsonSerializer.Deserialize<JsonObject>(jsonString) ??
             throw new InvalidOperationException("Bad JSON response");
